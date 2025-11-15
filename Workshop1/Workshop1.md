@@ -206,7 +206,7 @@ function App() {
   );
 }
 ```
-We use a component just like an HTML tag by writing its name inside `< />`. If the component accepts arguments which are called props in React, we define them as parameters in the component’s function. Then, when using the component, we pass values to it by specifying the prop names as attributes.
+We use a component just like an HTML tag by writing its name inside `< />`. Component can take external data by using props in React, we first add the props paramater to the compononet function. Then, inside the function we use them by using `props.argumentName`, the argument name is an attribute we add when we create or use the component,Here example of component that greet users.
 ```jsx
 function Welcome(props) {
   return <h1>Hello, {props.name}!</h1>;
