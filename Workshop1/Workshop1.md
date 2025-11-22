@@ -153,14 +153,14 @@ JSX is powerful because it lets us build our UI and its logic in the same place,
 #### The Rules of JSX
 JSX is not HTML, so it has a few strict rules:
 **Must Return a Single Root Element:** A component can only return one top-level element.
-- **❌ This is wrong:**
+- **This is wrong:**
 	```
 	return (
 	  <h1>Title</h1>
 	  <p>Paragraph</p>
 	);
 	```
-- **✅ This is correct:** Wrap it in a `<div>` or, if you don't want an extra `div`, use a Fragment (`<>`):
+- **This is correct:** Wrap it in a `<div>` or, if you don't want an extra `div`, use a Fragment (`<>`):
 	```
 	return (
 	  <>

@@ -1,0 +1,78 @@
+.App {
+  max-width: 500px;
+  margin: 50px auto;
+  padding: 20px;
+  font-family: 'Arial', sans-serif;
+  background-color: #f9f9f9;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+h1 {
+  text-align: center;
+  color: #333;
+}
+
+/* 2. Form Styling */
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+input, textarea {
+  display:block;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 16px;
+  width:80%;
+}
+
+button {
+  cursor: pointer;
+  padding: 10px 15px;
+  border: none;
+  border-radius: 5px;
+  font-weight: bold;
+  color: white;
+  transition: background 0.2s;
+}
+
+button[type="submit"] {
+  background-color: #28a745; 
+}
+
+button[type="submit"]:hover {
+  background-color: #218838;
+}
+
+
+div  div {
+  background: white;
+  border: 1px solid #ddd;
+  padding: 15px;
+  margin-bottom: 10px;
+  border-radius: 8px;
+  position: relative; /* For positioning the delete button if needed */
+}
+
+div h3 {
+  margin: 0 0 5px 0;
+  color: #444;
+}
+
+div p {
+  margin: 0 0 15px 0;
+  color: #666;
+}
+
+button {
+  background-color: #dc3545; /* Red */
+  width: 100%;
+}
+
+button:hover {
+  background-color: #c82333;
+}
