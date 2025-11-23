@@ -1,7 +1,6 @@
 ## Objectives
 - Managing side effects with `useEffect`.
 - Implementing Client-Side Routing with React Router.
-- Fetching external data from APIs.
 - Managing global state with Context API.
 - Accessing the DOM directly using `useRef`.
 ## The Lifecycle of a Component
@@ -26,6 +25,51 @@ In this example, we update the browser tab's title every time the `count` value 
 - **`[]`** (Empty array): Runs the effect only once (when the component mounts). This is perfect for initial API calls.
 - **No array**: Runs the effect after **every single render**. (Be careful: this can cause performance issues or infinite loops).
 
+### Data Fetching
+Most modern applications depend on data that lives on a remote server (like a database or an API). Because retrieving this data takes time (it is asynchronous), we cannot simply assign it to a variable and display it immediately.
+
+Since fetching data interacts with the outside world, it is considered a Side Effect. Therefore, we combine useEffect to trigger the request with useState to save the result.
+
+When working with external data, we generally need to manage three distinct states of the UI:
+
+- Loading: The request has been sent, but the data hasn't arrived yet. We show a spinner or text.
+
+- Success: The data has arrived successfully. We display the content.
+
+- Error: The request failed (e.g., 404 or server down). We show an error message.
+```jsx
+function UserList() {
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("https://jsonplaceholder.typicode.com/users")
+      .then((response) => response.json())
+      .then((data) => {
+        setUsers(data);
+        setLoading(false);
+      });
+  }, []); // Empty array = Run once on mount
+
+  if (loading) return <p>Loading...</p>;
+
+  return <ul>{users.map(u => <li key={u.id}>{u.name}</li>)}</ul>;
+}
+```
+We started by we definning two pieces of state.
+
+- users: We initialize this as an empty array [] because we expect a list of items.
+- loading: We initialize this as true. We assume the data is not ready the moment the component mounts, so we want the "Loading..." message to appear immediately.
+
+Next, we placed our `fetch` call inside `useEffect`. We passed an empty dependency array (`[]`) as the second argument. This instructs React to run the function only once, immediately after the first render. Omitting this array would cause an infinite loop fetching data triggers a state update, which triggers a re-render, which triggers the effect again.
+
+Inside the effect, we used the standard browser `fetch` API. We converted the raw response into JSON, and once we obtained the data, we performed a state update:
+- `setUsers(data)` stores the list.
+- `setLoading(false)` signals to React that we are finished waiting.
+
+Before rendering the list, we check the loading state. This pattern is known as an "Early Return." If the data is still loading, we return a simple paragraph tag and stop execution. React ignores the rest of the function, preventing us from mapping over empty data or displaying a blank screen.
+
+Once `loading` becomes `false`, the component re-renders. It skips the early return and proceeds to the final return statement. Here, we use the `.map()` method to iterate through our `users` state and generate the `<li>` items.
 ## Client-Side Routing
 In traditional web development, every time you click a link, the browser makes a request to the server, the screen flashes white, and a brand new HTML page loads. This is slow and feels "clunky." 
 
