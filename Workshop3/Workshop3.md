@@ -294,3 +294,107 @@ function ThemeToggle() {
 We first created our context using `createContext()`. This gave us a dedicated place to store shared values that multiple components might need, such as the current theme or user information. After that, we wrapped the parts of our application that require access to this data inside the Context Provider. The Provider accepts a `value` prop, and whatever we place inside it becomes globally available to all components nested within the Provider. In our example, the `App` component uses the Provider to expose both the current theme and the function used to toggle it.
 
 From there, the data flows naturally through our component tree without needing to manually pass props. The `App` component holds a piece of state (the current theme) and makes it available to its children via the Provider. The `Page` component sits between the Provider and the component that actually needs the theme, but since `Page` does not use the theme itself, we don’t need to pass it down through props. Finally, the `ThemeToggle` component, which lives deeper in the tree, uses the `useContext(ThemeContext)` hook to instantly access both the current theme value and the updater function. Because of this, it can read and modify the theme without receiving anything from its parent.
+## The `useRef` Hook
+When data changes in React, we typically update **state**, which triggers the component to re-render and update the UI. However, not all values belong in state. Sometimes, we need to store information that persists between renders but **should not** cause the component to re-paint.
+
+This is exactly where the `useRef` hook shines. It acts as an "escape hatch" from the standard React data flow.
+### How It Works
+`useRef` returns a mutable object with a single property: `.current`. We can think of it as a plain JavaScript object that React guarantees will stay the same (the object reference itself) for the full lifetime of the component.
+
+We can see `useRef` as a box that we can put things into. We can take items out or put new items in (changing the `.current` value) whenever we want, and React won't notice or care.
+### Why `useRef` Exists
+React’s rendering cycle is designed strictly around state and prop changes. Whenever we update state, React calculates the DOM differences and updates the screen. However, forcing a re-render for "invisible" data is wasteful.
+
+**Common scenarios where `useRef` is superior to `useState`:**
+
+- **DOM Access:** Directly manipulating a DOM node (e.g., focusing an input, scrolling to an element, or measuring an element's size).
+- **Timers and Intervals:** Storing IDs from `setInterval()` or `setTimeout()` so you can clear them later.
+- **Previous Values:** Tracking the previous value of a state variable to compare it with the new one.
+- **Instance Variables:** Storing data that isn't used for visual output (e.g., tracking if a component is mounted).
+
+
+Placing these in state would cause unnecessary re-renders, which can hurt performance or cause unintended side effects.
+
+`useRef` solves this by providing a stable container that persists between renders without asking React to update the UI.
+### Creating a Ref
+To create a ref, we call the `useRef` hook. The argument we pass to it becomes the **initial value** of the property.
+```jsx
+const inputRef = useRef(null);
+```
+The hook returns a plain JavaScript object that looks exactly like this:
+```json
+{
+  current: null // or whatever initial value you passed
+}
+```
+Any data stored in `.current` will live for the entire lifespan of the component, surviving every re-render.
+### Using a Ref to Access the DOM
+One of the primary use cases for `useRef` is accessing a DOM element directly. While React prefers to handle the DOM for us ("Declarative"), sometimes we need to get our hands dirty ("Imperative") for tasks like:
+
+- Focusing an input on load or button click.
+- Scrolling to a specific section.
+- Measuring an element’s width or height.
+- Interacting with HTML5 Canvas or Media players.
+
+
+**Example: Focusing an Input**
+```jsx
+import { useRef } from 'react';
+
+function Example() {
+
+  const inputRef = useRef(null);
+
+  const focusInput = () => {
+    
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
+  };
+
+  return (
+    <div>
+      {/* 2. Attach the ref to the element using the ref={} attribute */}
+      <input ref={inputRef} />
+      
+      {/* 3. Trigger the action via an event handler */}
+      <button onClick={focusInput}>Focus Input</button>
+    </div>
+  );
+}
+```
+When the component first loads, `inputRef` is initialized as an object with a `current` property set to `null`. When React renders the `<input>` element, it notices the `ref` attribute and automatically assigns the actual DOM node of the input to `inputRef.current`. This means the ref now points directly to the browser’s underlying input element. As a result, when `focusInput` is called, it can bypass React entirely and interact directly with the DOM by invoking the browser’s native `.focus()` method on `inputRef.current`.
+### Refs Persist Between Renders
+A key superpower of `useRef` is that it never resets during re-renders, yet updating it does not trigger a new render. This makes it perfect for "hidden state" data that needs to be remembered but doesn't affect what the user sees.
+
+**Example:**   
+Storing Previous Value Without Triggering Re-renders
+```jsx
+import { useEffect, useRef, useState } from 'react';
+
+function PreviousValueExample() {
+  const [count, setCount] = useState(0);
+  const previousCount = useRef(null);
+
+  useEffect(() => {
+    
+    previousCount.current = count;
+  });
+
+  return (
+    <div>
+      <h1>Current: {count}</h1>
+      <h2>Previous: {previousCount.current}</h2>
+
+      <button onClick={() => setCount(count + 1)}>
+        Increment
+      </button>
+    </div>
+  );
+}
+```
+In this example, we create a normal state variable `count` and a ref called `previousCount`. Since refs persist across renders without causing re-renders, they are perfect for storing values like “the previous state.” We use a `useEffect` **without a dependency array**, which means the effect runs after **every** render. Inside this effect, we simply update `previousCount.current` to match the latest value of `count`. Because updating a ref does _not_ trigger a re-render, this avoids unnecessary updates.    
+
+The component displays both the current count (from state) and the previous count (from the ref). When the user clicks the "Increment" button, `setCount` updates the state, which triggers a re-render. After that render completes, the effect runs again and stores the new previous value.   
+
+If we tried to store the previous value using `useState`, updating the state inside the effect would cause another render, which would update the state again, and so on creating an infinite loop. Using `useRef` avoids this problem because refs update silently without triggering React’s render cycle.
