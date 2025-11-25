@@ -1,0 +1,28 @@
+/* Global App Themes */
+.app { min-height: 100vh; transition: 0.3s; font-family: sans-serif; }
+.app.light { background: #f4f4f4; color: #333; }
+.app.dark { background: #222; color: #fff; }
+.app.dark a { color: #4da6ff; }
+
+/* Header */
+header {
+  display: flex; justify-content: space-between; padding: 20px;
+  background: rgba(0,0,0,0.1); align-items: center;
+}
+
+.container { max-width: 800px; margin: 0 auto; padding: 20px; }
+
+/* Search */
+.search-bar { display: flex; gap: 10px; margin-bottom: 30px; }
+input { flex: 1; padding: 10px; border-radius: 5px; border: 1px solid #ccc; }
+button { padding: 10px 20px; cursor: pointer; }
+
+/* Grid */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 20px; }
+.card { background: rgba(255,255,255,0.1); padding: 10px; border-radius: 8px; text-align: center; }
+.card img { width: 100%; border-radius: 5px; }
+.card h3 { font-size: 1rem; margin: 10px 0; }
+
+/* Detail Page */
+.detail-content { display: flex; gap: 20px; margin-top: 20px; }
+.detail-content img { max-width: 300px; }

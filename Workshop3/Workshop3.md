@@ -398,3 +398,234 @@ In this example, we create a normal state variable `count` and a ref called `pre
 The component displays both the current count (from state) and the previous count (from the ref). When the user clicks the "Increment" button, `setCount` updates the state, which triggers a re-render. After that render completes, the effect runs again and stores the new previous value.   
 
 If we tried to store the previous value using `useState`, updating the state inside the effect would cause another render, which would update the state again, and so on creating an infinite loop. Using `useRef` avoids this problem because refs update silently without triggering React’s render cycle.
+
+## Building a Movie Database App
+### Introduction
+Let's combine the concepts of API fetching, Routing, and Context to build a "Mini Movie DB." Users will be able to search for TV shows using the **TVMaze API**, view a list of results, and click on a show to see a dedicated details page.
+
+We will also implement a global "Dark Mode" feature using React Context to manage state across the entire application without passing props manually through every level.
+### App Logic
+Before we write code, let's break down the requirements:
+1. **Home Page:** This needs a search bar and a grid to display results. We will use `useRef` to capture input and `useEffect` to fetch data from the API.
+2. **Details Page:** When a user clicks a movie, we need a dedicated page. We will use URL Parameters (`:id`) to fetch details for that specific show.
+3. **Global State:** We need a toggle for Light/Dark mode that persists regardless of which page we are on.
+### Project Structure & Organization
+Up until now, we might have written multiple components inside a single `App.js` file for simplicity. However, as applications grow, this becomes unmanageable.
+
+For this project, we will move each component into its own file. This practice, known as Separation of Concerns, makes code easier to read, debug, and reuse.
+
+Our folder structure inside `src/` should look like this:
+```
+src/
+ ├── components/
+ │     ├── Home.jsx
+ │     ├── ShowDetail.jsx
+ ├── context/
+ │     └── ThemeContext.jsx
+ ├── App.js
+ ├── App.css
+ └── index.js
+```
+### Creating the Components
+Now, let's build our components file by file.
+#### Theme Context (`ThemeContext.js`)
+First, we create a context to manage our styling globally. This allows us to avoid "prop-drilling" , passing the theme prop down through layers of components that don't need it.
+
+**Create a file named `ThemeContext.js`:**
+```jsx
+import { createContext, useState, useContext } from 'react';
+
+const ThemeContext = createContext();
+
+export function ThemeProvider({ children }) {
+  const [darkMode, setDarkMode] = useState(false);
+
+  const toggleTheme = () => setDarkMode(!darkMode);
+
+  return (
+    <ThemeContext.Provider value={{ darkMode, toggleTheme }}>
+      <div className={darkMode ? "app dark" : "app light"}>
+        {children}
+      </div>
+    </ThemeContext.Provider>
+  );
+}
+
+export const useTheme = () => useContext(ThemeContext);
+```
+In this code, we start by creating a context using `createContext()`. A context is like a shared storage space that React can use to pass data deeply through the component tree without needing to pass props manually at every level. In this case, `ThemeContext` will hold information about the theme, such as whether the app is in dark mode or light mode.
+
+The `ThemeProvider` is a component we created to “provide” this shared data to anything inside it. Inside the provider, we use `useState(false)` to store a boolean called `darkMode`. This value tells us which theme is currently active. We also define a function called `toggleTheme` that flips this value between true and false. The provider then wraps its children in `ThemeContext.Provider` and sends the values `{ darkMode, toggleTheme }` to all nested components. Additionally, it applies a different CSS class depending on whether dark mode is active, allowing the UI to visually update.
+
+The `useContext` hook is used to read the data stored in a context. Instead of using `useContext(ThemeContext)` everywhere, we create a small helper called `useTheme`. This custom hook simply calls `useContext(ThemeContext)` for us. This makes it easier and cleaner for any component to access the theme. When a component calls `useTheme()`, it receives the current `darkMode` value and the `toggleTheme` function.
+
+In short, `createContext` creates the shared space, `ThemeProvider` fills that space with values and makes them available to the app, and `useContext` (wrapped inside our `useTheme` hook) allows any component to read and use that shared data.
+#### The Home Page (`Home.js`)
+This component handles the search logic.
+
+**Create a file named `Home.js`:**
+```jsx
+import { useState, useRef } from 'react';
+import { Link } from 'react-router-dom';
+
+function Home() {
+  const [shows, setShows] = useState([]);
+  const searchInput = useRef(null); 
+
+  const searchShows = async () => {
+    const query = searchInput.current.value;
+    if(!query) return;
+
+    const response = await fetch(`https://api.tvmaze.com/search/shows?q=${query}`);
+    const data = await response.json();
+    setShows(data);
+  };
+
+  return (
+    <div className="container">
+      <h1>TV Show Search</h1>
+      <div className="search-bar">
+        <input ref={searchInput} type="text" placeholder="e.g. Breaking Bad" />
+        <button onClick={searchShows}>Search</button>
+      </div>
+
+      <div className="grid">
+        {shows.map((item) => (
+          <div key={item.show.id} className="card">
+            <img src={item.show.image?.medium} alt={item.show.name} />
+            <h3>{item.show.name}</h3>
+            <Link to={`/show/${item.show.id}`}>View Details</Link>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+export default Home;
+```
+In this component, we use two hooks. `useState([])` stores the list of TV shows returned from the API, and `useRef(null)` gives us a direct reference to the input field so we can read its value without storing it in state.
+
+The `searchShows` function runs when the user clicks the Search button. It reads the text from the input using `searchInput.current.value`. If the user typed something, we call the TVMaze API using `fetch`, convert the response to JSON, and save the results in the `shows` state. Updating the state automatically displays the new list of shows.
+
+The UI includes a search bar and a grid of show cards. Each card shows an image, the show’s name, and a link. The `<Link>` component sends the user to a dynamic route like `/show/ID`, where they can view more details about the selected show.
+
+We export the `Home` component so it can be used as one of the pages in our React Router app.
+#### The Details Page (`ShowDetail.js`)
+When a user clicks a link, this component loads. It grabs the ID from the URL and fetches the specific data.
+
+**Create a file named `ShowDetail.js`:**
+```jsx
+import { useEffect, useState } from 'react';
+import { useParams, Link } from 'react-router-dom';
+
+function ShowDetail() {
+  const { id } = useParams(); // Get the ID from URL (e.g., /show/123)
+  const [show, setShow] = useState(null);
+
+  useEffect(() => {
+    fetch(`https://api.tvmaze.com/shows/${id}`)
+      .then(res => res.json())
+      .then(data => setShow(data));
+  }, [id]);
+
+  if (!show) return <h2>Loading...</h2>;
+
+  return (
+    <div className="container detail-page">
+      <Link to="/" className="back-btn">← Back</Link>
+      <div className="detail-content">
+        <img src={show.image?.original} alt={show.name} />
+        <div>
+          <h1>{show.name}</h1>
+          <p dangerouslySetInnerHTML={{ __html: show.summary }}></p>
+          <p><strong>Rating:</strong> {show.rating?.average}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+export default ShowDetail;
+```
+The ``ShowDetail`` component display detail about show, we use React Router’s `useParams()` to get the show’s ID from the URL. This lets us know which show the user wants to view. We store the show’s data in state using `useState(null)`.
+
+The `useEffect` hook runs whenever the `id` changes. Inside it, we fetch detailed information about the show from the TVMaze API using the ID from the URL. Once the data arrives, we update the `show` state, and the page re-renders with the show’s details.
+
+Before the data loads, we return a simple “Loading…” message. After that, the page displays the show’s image, title, summary, and rating. The summary is rendered using `dangerouslySetInnerHTML` because the API returns HTML tags inside the text.
+
+We also include a `<Link>` at the top that takes the user back to the home page. Finally, we export the `ShowDetail` component so it can be used in our router setup as the page for viewing individual show details.
+#### The App (`App.js`)
+Finally, we bring everything together. `App.js` acts as the traffic controller for our application.
+
+**Update your `App.js`:**
+```jsx
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import Home from './components/Home';
+import ShowDetail from './components/ShowDetail';
+import { ThemeProvider, useTheme } from './context/ThemeContext';
+import './App.css';
+// A small Header component to hold the Theme Toggle
+function Header() {
+  const { darkMode, toggleTheme } = useTheme();
+  return (
+    <header>
+      <span>🎬 MovieDB</span>
+      <button onClick={toggleTheme}>
+        {darkMode ? "☀️ Light Mode" : "🌙 Dark Mode"}
+      </button>
+    </header>
+  );
+}
+
+function App() {
+  return (
+    <ThemeProvider>
+      <BrowserRouter>
+        <Header />
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/show/:id" element={<ShowDetail />} />
+        </Routes>
+      </BrowserRouter>
+    </ThemeProvider>
+  );
+}
+
+export default App;
+```
+Finally, in our `App.js`, we import all the components we need. First, we create a **Header** component, which displays the app title and includes a button to switch between light and dark mode using our theme context.
+
+After that, we define the **App** component. We wrap the entire app in two wrappers: **`ThemeProvider`**, which gives every component access to the dark mode state, and **`BrowserRouter`**, which enables routing between pages. Inside `<Routes>`, we define our paths: `/` for the `Home` component and `/show/:id` for the dynamic `ShowDetail` page, where `:id` corresponds to the selected show’s ID.
+### Adding Styles
+To visualize the Dark/Light mode and organize the grid, replace the content of `App.css` with the following:
+```css
+/* Global App Themes */
+.app { min-height: 100vh; transition: 0.3s; font-family: sans-serif; }
+.app.light { background: #f4f4f4; color: #333; }
+.app.dark { background: #222; color: #fff; }
+.app.dark a { color: #4da6ff; }
+
+/* Header */
+header {
+  display: flex; justify-content: space-between; padding: 20px;
+  background: rgba(0,0,0,0.1); align-items: center;
+}
+
+.container { max-width: 800px; margin: 0 auto; padding: 20px; }
+
+/* Search */
+.search-bar { display: flex; gap: 10px; margin-bottom: 30px; }
+input { flex: 1; padding: 10px; border-radius: 5px; border: 1px solid #ccc; }
+button { padding: 10px 20px; cursor: pointer; }
+
+/* Grid */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 20px; }
+.card { background: rgba(255,255,255,0.1); padding: 10px; border-radius: 8px; text-align: center; }
+.card img { width: 100%; border-radius: 5px; }
+.card h3 { font-size: 1rem; margin: 10px 0; }
+
+/* Detail Page */
+.detail-content { display: flex; gap: 20px; margin-top: 20px; }
+.detail-content img { max-width: 300px; }
+```
+
+The CSS relies on the `.app` div in `ThemeContext.js` switching classes between `.light` and `.dark`. When the state changes, these CSS variables apply immediately, creating a seamless theme switch.
