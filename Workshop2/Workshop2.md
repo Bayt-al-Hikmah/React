@@ -171,172 +171,202 @@ When the user types, the `onChange` listener detects the event immediately. Insi
 We then use `setText` to update our state. Once the state changes, React triggers a re-render, updating the input field to match the new text we just stored.
 ## Building To-Do List App
 ### Introduction
-Let's put what we have learned into practice and build a To-Do List App. Users will have the ability to add, edit, and remove tasks, and React will render these as a dynamic list of elements.
+Let's put what we have learned into practice and build a To-Do List App. Users will have the ability to add, and remove tasks.
 ### App Logic
-So, what do we need to build? First, we need an input area with fields for the Task Name and Description, plus a button to submit the data.     
+So, what do we need to build? First, we need an Form with input field to for the task Title and textarea for Task Description, plus a button to submit the data.     
 
-Second, inside the list itself, every task needs controls. We will add a Delete button to remove tasks from the application.
+Second, inside the task list, every task needs a Delete button to remove tasks from the application.
 ### Creating the Components
-Now lets create the components that we need, 
-#### Input
-First, we need a component to capture the task data. This component renders a form containing an `<input>` for the task title and a `<textarea>` for the description. 
-```jsx
-function Input(props){
-    const [title,setTitle] = useState("");
-    const [description,setDescription] = useState("");
-    return(
-    <form onSubmit={
-    (e)=>{
-        e.preventDefault()
-        const newTask = {"title":title,"description":description}
-        props.setTasks([...props.tasks,newTask])
-        setTitle("")
-        setDescription("")
-        }
-    }>
-    <label> Title:
-    <input value={title} onChange={(e)=>{setTitle(e.target.value)}} />
-    </label>
-    
-    <label>Description:
-    <textarea value={description} onChange={(e)=>{setDescription(e.target.value)}}>
-    </textarea>
-    </label>
-    
-	<button type="submit">Add Task</button>
-    </form>
-    )
+Now lets create the components that we need
+#### Reducer Function
+First Lets Create reducer function to manage the task list
+```
+function reducer(state,action){
+  switch(action.type){
+    case 'ADD_TASK':
+      return [...state,action.payload];
+    case 'DELETE_TASK':
+      return state.filter((task)=>task.title!==action.payload);
+    default:
+      return state;
+  }
 }
 ```
-Just as we did before, we create local state variables to handle the values of the input and text area element. 
+This reducer handles two main operations:
+- Adding a task: It returns a new array by spreading the existing state and appending the new task from the action’s payload.
+- Deleting a task: It filters the task list and removes the task whose title matches the one provided in the payload.
+#### Form
+Next, we create a Form component to capture new task data. It renders an ``<input>`` for the task title and a ``<textarea>`` for the task description. When the form is submitted, it constructs a new task object and dispatches an ``ADD_TASK`` action.
+```jsx
+function Form({setTasks}){
+    const [title,setTitle] = useState("");
+    const [description,setDescription] = useState("");
+    return(
+    <form>
+    <label> Title:
+    <input value={title} onChange={(e)=>{setTitle(e.target.value)}} />
+    </label>
 
-The most critical part of this component is handling the form submission via the `onSubmit` event handler. When the form is submitted, our function runs immediately. The first thing we must do is call `e.preventDefault()`. This is essential because standard HTML forms automatically refresh the page upon submission. In a React application, a refresh would wipe out all our current variables and state, so we must prevent this to keep the app running smoothly.
-
-Once the default behavior is blocked, we create a new task object using the current `title` and `description` from our state. We then use the `setTasks` function which we received via props to update the main list. We do this by creating a new array that contains all the old tasks plus the new one we just created. 
-
-Finally, we call our state setters again to reset the input fields to empty strings, clearing the form for the next entry.
+    <label>Description:
+    <textarea value={description} onChange={(e)=>{setDescription(e.target.value)}}>
+    </textarea>
+    </label>
+    
+    <button  class = "green" onClick={
+      (e)=>{
+        e.preventDefault();
+        const newTask = {"title":title,"description":description}
+        setTasks({type:"ADD_TASK",payload:newTask})
+        setTitle("")
+        setDescription("")
+        }
+    
+    }>Add Task</button>
+    </form>
+    )
+}
+```
+The Form component collects a task’s title and description using controlled inputs managed by ``useState``. When the user clicks Add Task, the component prevents the default form submission, creates a new task object, and dispatches an ``ADD_TASK`` action through setTasks. After adding the task, it clears both input fields to reset the form.
 #### Tasks
-Now, let's create the component responsible for displaying our tasks.
+Now, let's create the components responsible for displaying our tasks. We need two components one represent a single task and the other represent the tasks list.
 ```jsx
-function Tasks(props){
-    return (
-    <div>
-    {  
-    props.tasks.map((task)=>{
-     return (<div key="">
-        <h3> {task.title}</h3>
-        <p>{task.description}</p>
-        <button onClick={()=>{
-            const filteredTasks = props.tasks.filter(t=>t!==task)
-            props.setTasks(filteredTasks)
-        }}>Delete Task</button>
-    </div>)
-    })
-}
-    </div>
-    )  
+function Task({title,description,setTasks}){
+  return (
+    <div key={title}>
+    <h3>{title}</h3>
+    <p>{description}</p>
+    <button onClick={()=>{
+          setTasks({type:"DELETE_TASK",payload:title})
+        }}>Delete Task</button>
+    </div>)
+
 }
 ```
-This component receives the list of tasks through `props`. To render them, we use the JavaScript `.map()` method to iterate over the array. For every task in the data, we return a `<div>` containing the task's title, description, and a button to remove it.
+The Task component is responsible for displaying a single task. It shows the task’s title and description, and includes a Delete Task button. When clicked, it dispatches a ``DELETE_TASK`` action using the task’s title as the payload, allowing the reducer to remove that task from the list.
+```jsx
+function Tasks({tasks,setTasks}){
+    return (
+    <div>
+    {  
+    tasks.map((task,index)=>
+     <Task 
+      setTasks={setTasks}
+      key={index} 
+      title={task.title}
+      description={task.description} /> 
+    )
+    }
+    </div>
+    )  
+}
+```
+The Tasks component renders the entire task list by mapping over the tasks array. For each task, it creates a Task component and passes down the title, description, and the setTasks dispatcher. This component acts as a container that displays all tasks on the screen.
 
-The logic for removing a task happens inside the button's `onClick` handler. We use the `.filter()` method to create a new version of our list. This function looks at every task in the array and keeps it **only if** it is not the task we just clicked. Effectively, this copies everything except the item we want to remove.   
+#### The Todo
+Before finalizing our application, we'll create a central component to act as the main container, utilizing the built-in children prop to accept and render all nested content.
+```jsx
+function Todo({children}){
+  return (
+    <div className="Todo">
+      <h1>Todo List</h1>
+      {children}
+     </div>
 
-Finally, we pass this new, filtered array to `props.setTasks`, which updates the state and removes the item from the screen.
+    )
+}
+```
+The Todo component serves as a container for the entire app. It displays a main heading and uses the children prop to render whatever content is passed inside it. This makes the component flexible, allowing us to wrap the form, task list, or any other UI elements inside the same layout.
 #### The App
 Finally, we bring everything together in our main `App` component. This serves as the "Parent" that manages the data for the entire application.
 ```jsx
 function App() {
-  const [tasks,setTasks] = useState([]);
-  return (
-    <div className="App">
-      <h1>Todo List</h1>
-      <Input tasks={tasks} setTasks={setTasks}/>
-      <Tasks tasks={tasks} setTasks={setTasks}/>
-    </div>
-  );
-
+  const [tasks,setTasks] = useReducer(reducer,[]);
+  return (
+      <Todo >
+      <Form tasks={tasks} setTasks={setTasks} />
+      <Tasks tasks={tasks} setTasks={setTasks}/>
+      </Todo>
+  );
 }
 ```
-We started by initializing our `tasks` state as an empty array `[]`. It is crucial that this state lives here, at the top level, rather than inside the individual components. This is a concept called **"Lifting State Up."**
-
-By keeping the state in the `App` component, we can pass the `tasks` list and the `setTasks` function down to both the `<Input />` and `<Tasks />` components via **props**. This allows the Input component to add to the list, and the Tasks component to read and delete from the list, ensuring both components stay perfectly in sync with the same data.
+In the App component, we use ``useReducer`` with the previously defined reducer to manage the task list state. The tasks state holds the current tasks, and ``setTasks`` is used to dispatch actions like adding or deleting tasks. We wrap the Form and Tasks components inside the Todo container. By passing them as children to Todo, the container can render them within its layout while keeping the structure separate from the content. Additionally, we pass tasks and setTasks as props to the child components so they can access and modify the task list for example, using the add and delete functionality.
 #### Adding Styles
 To make the list look clean and modern, replace the content of `App.css` with the following:
 ```css
-.App {
-  max-width: 500px;
-  margin: 50px auto;
-  padding: 20px;
-  font-family: 'Arial', sans-serif;
-  background-color: #f9f9f9;
-  border-radius: 10px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+.Todo {
+  max-width: 500px;
+  margin: 50px auto;
+  padding: 20px;
+  font-family: 'Arial', sans-serif;
+  background-color: #f9f9f9;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
 }
 
 h1 {
-  text-align: center;
-  color: #333;
+  text-align: center;
+  color: #333;
 
 }
 
 form {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
 }
 
 input, textarea {
-  display:block;
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  font-size: 16px;
-  width:80%;
+  display:block;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 16px;
+  width:80%;
 
 }
 
 button {
-  cursor: pointer;
-  padding: 10px 15px;
-  border: none;
-  border-radius: 5px;
-  font-weight: bold;
-  color: white;
-  transition: background 0.2s;
-  background-color: #dc3545; 
-  width: 100%;
+  cursor: pointer;
+  padding: 10px 15px;
+  border: none;
+  border-radius: 5px;
+  font-weight: bold;
+  color: white;
+  transition: background 0.2s;
+  background-color: #dc3545; 
+  width: 100%;
 }
 
-button[type="submit"] {
-  background-color: #28a745;
+button.green {
+  background-color: #28a745;
 }
 
-button[type="submit"]:hover {
-  background-color: #218838;
+button.green:hover {
+  background-color: #218838;
 }
 
-div  div {
-  background: white;
-  border: 1px solid #ddd;
-  padding: 15px;
-  margin-bottom: 10px;
-  border-radius: 8px;
-  position: relative; 
+div  div {
+  background: white;
+  border: 1px solid #ddd;
+  padding: 15px;
+  margin-bottom: 10px;
+  border-radius: 8px;
+  position: relative; 
 }
   
 div h3 {
-  margin: 0 0 5px 0;
-  color: #444;
+  margin: 0 0 5px 0;
+  color: #444;
 }
 
 div p {
-  margin: 0 0 15px 0;
-  color: #666;
+  margin: 0 0 15px 0;
+  color: #666;
 }
  
 button:hover {
-  background-color: #c82333;
+  background-color: #c82333;
 
 }
 ```
