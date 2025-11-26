@@ -449,3 +449,153 @@ export default function App() {
 
 ```
 Now we wrapped  the `App` component with `<Provider store={store}>` to make the Redux store available to all child components. Inside `Counter`, we use **`useSelector`** to read the current `count` from the store and **`useDispatch`** to send actions (`INCREMENT`, `DECREMENT`, `RESET`) to the store. Clicking the buttons dispatches actions, which the reducer handles to update the state, and the UI automatically reflects the latest count.
+
+### State Management
+#### Lifting State Up
+The concept of Lifting State Up is fundamental in React when two or more sibling components need to share or react to the same piece of mutable data. The solution is to move (or "lift") the shared state up to the closest common parent component.
+
+When the state is in the parent, the parent can pass the state down to one child component (e.g., to display it) and a function (a setter) to the other child component (e.g., to modify it).
+#### Sharing State Between Components
+Imagine you have a `TemperatureInput` component for Celsius and another for Fahrenheit, and changing one must update the other.
+
+1. **Define the Shared State:** The parent component (`Calculator`) defines the state (`temperature`) and the setter function (`setTemperature`).
+2. **Pass State and Handlers Down:** The parent passes the `temperature` as a prop to both children, and it passes the `setTemperature` function as a prop to the child that needs to change the state.
+
+```jsx
+// Parent Component (Lifts the state)
+function SharedForm() {
+  const [name, setName] = useState('');
+
+
+  const handleNameChange = (newName) => {
+    setName(newName);
+  };
+
+  return (
+    <div>
+      <NameInput onNameChange={handleNameChange} /> 
+      <hr />
+      <p>Current Name: **{name}**</p> 
+    </div>
+  );
+}
+
+function NameInput({ onNameChange }) {
+  return (
+    <input 
+      type="text" 
+      placeholder="Enter your name"
+      onChange={(e) => onNameChange(e.target.value)} 
+    />
+  );
+}
+```
+In this small example of **Lifting State Up**, we **created a parent component (`SharedForm`)** that holds the `name` state. We then passed a handler (`handleNameChange`) down to the child component (`NameInput`) as a prop. The child updates the parent’s state whenever the input changes, allowing both components to share and reflect the same state, keeping the data synchronized.
+
+### Higher-Order Components (HOCs)
+A Higher-Order Component (HOC) is a function that takes a component as input and returns a new component with extra features or enhanced behavior. HOCs were widely used for reusing component logic before Hooks existed, but they are still important to understand because many libraries and legacy codebases still rely on them.
+
+To create an HOC, we define a function that accepts a component, wraps it with additional logic, and returns a new component. We can think of it like a factory function that builds a modified version of a component by adding new capabilities while keeping the original component intact.
+
+**Example:**
+```jsx
+function withLogger(WrappedComponent) {
+  return function EnhancedComponent(props) {
+    console.log(`Rendering component: ${WrappedComponent.name}`);
+    return <WrappedComponent {...props} />;
+  };
+}
+
+function Hello() {
+  return <h2>Hello World</h2>;
+}
+
+const HelloWithLogger = withLogger(Hello);
+
+export default function App() {
+  return <HelloWithLogger />;
+}
+```
+Here we have three main parts:
+1. **`withLogger`**, which represents our Higher-Order Component.  
+    It takes another component as input (`WrappedComponent`) and returns a new component that logs a message every time it renders. Inside it, we return `EnhancedComponent`, which prints to the console and then renders the original component with all its props.
+    
+2. Next, we created a simple component called **`Hello`**, which just displays “Hello World”.
+3. Finally, we used our HOC by calling `withLogger(Hello)` to create **`HelloWithLogger`**. This enhanced version of `Hello` now logs a message whenever it renders. In the `App` component, we render `HelloWithLogger` instead of the plain `Hello`.
+
+### Portals
+Normally, React renders everything inside the root DOM element (usually `<div id="root">`).  
+However, there are situations where we need a component to visually appear somewhere else in the DOM, while still being logically part of the React component tree.
+
+This is exactly what **Portals** allow us to do, Portals let us render a React component into a completely different DOM node, without breaking React's rendering cycle or event handling. React still manages state, props, and updates normally only the final DOM position changes.  
+#### Working with Portals
+To work with Portals, we first need to create a separate DOM element in our HTML file where the portal will be rendered. Then, in React, we use `ReactDOM.createPortal()` to send a component’s content into that DOM node. Even though the component appears outside the main root element, React still controls it normally, making Portals perfect for modals, popups, and tooltips.
+
+**Example**
+First we create our new DOM element where the protel will be render
+```jsx
+<div id="modal-root"></div>
+```
+This is an extra DOM node where the modal will be mounted.
+
+After thet we create the React logic
+```jsx
+import ReactDOM from "react-dom";
+
+function Modal({ children }) {
+  return ReactDOM.createPortal(
+    <div className="modal">{children}</div>,
+    document.getElementById("modal-root")
+  );
+}
+
+export default function App() {
+  return (
+    <div>
+      <h2>Main App Content</h2>
+      <Modal>
+        <p>This is inside a portal modal!</p>
+      </Modal>
+    </div>
+  );
+}
+```
+Here we created a **Modal** component that accepts `children` as a prop. Inside this component, we use **`ReactDOM.createPortal()`** to render the children into a different part of the DOM. The `createPortal` function takes **two arguments**: the React element we want to render and the DOM node where we want to mount it (`document.getElementById("modal-root")`).
+
+Finally, we used the `Modal` component just like any other React component inside the `App` component. Even though the modal content appears outside the main root element, it is still fully controlled by React, allowing state, props, and events to work normally. 
+### Forwarding Refs
+In React, refs allow us to directly access a DOM element or a component instance. However, there are cases where a parent component needs to access an element that lives inside a child component. Normally, props cannot be used to pass refs, so React provides **`forwardRef`** to handle this scenario.
+#### Working with Forwarded Refs
+To use forwarded refs, we wrap the child component with `forwardRef`, which allows it to accept a ref from the parent. The parent can then attach the ref to the desired DOM element inside the child component. This is especially useful for inputs, textareas, or custom components where the parent needs to control focus, selection, or measurements.
+**Example**
+```jsx
+import React, { forwardRef, useRef } from "react";
+
+const CustomInput = forwardRef((props, ref) => {
+  return <input ref={ref} type="text" placeholder="Type something..." />;
+});
+
+export default function App() {
+  const inputRef = useRef();
+
+  const focusInput = () => {
+    inputRef.current.focus(); 
+  };
+
+  return (
+    <div>
+      <CustomInput ref={inputRef} />
+      <button onClick={focusInput}>Focus Input</button>
+    </div>
+  );
+}
+```
+Here we created a **`CustomInput`** component that uses **`forwardRef`** to accept a ref from its parent. The `forwardRef` function takes a **render function** as its argument. This render function receives two parameters:
+1. **`props`**  all the props passed to the component.
+2. **`ref`** the forwarded ref from the parent component.
+
+Inside `CustomInput`, we attach this `ref` directly to the internal `<input>` element. This allows the parent component to access and manipulate the input element directly, such as focusing it or reading its value.
+
+In the parent **`App`** component, we created a ref (`inputRef`) using **`useRef()`** and passed it to `CustomInput` as a prop. We also added a button that, when clicked, calls `inputRef.current.focus()`, which directly focuses the input inside the child component.
+
+Even though the input is defined inside the child, React allows the parent to control it via the forwarded ref. This keeps the child component encapsulated while enabling precise DOM interactions, making `forwardRef` especially useful for reusable input components, custom focus management, or integrations with third-party libraries.
