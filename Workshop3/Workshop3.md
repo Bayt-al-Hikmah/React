@@ -1,8 +1,8 @@
 ## Objectives
-- Accessing the DOM directly using `useRef`.
 - Managing side effects with `useEffect`.
 - Implementing Client-Side Routing with React Router.
-- Managing global state with Context API. 
+- Managing global state with Context API.
+- Accessing the DOM directly using `useRef`.
 ## The Lifecycle of a Component
 In the previous workshops, our components were relatively simple: they rendered UI based on props and state. However, real applications need to interact with the "outside world." They need to fetch data, change the document title, or set up subscriptions. These are called Side Effects.
 ### The `useEffect` Hook
