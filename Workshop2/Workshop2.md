@@ -1,8 +1,10 @@
 ## Objectives
 - Working with `useReducer`
+- Children Components
 - Rendering lists of data using `.map()`.
 - Working with Conditional Rendering.
 - Handle User Input with "Controlled Components."
+
 ## Working with `useReducer`
 We used `useState` for managing data. However, when state becomes complex for example, when one action changes multiple parts of the state, or when the next state depends heavily on the previous one `useState` can get messy.   
 `useReducer` is an alternative hook. It is based on the idea that instead of telling React what to change directly, we send an Action, and a central function (the Reducer) decides how to update the state.
