@@ -1,7 +1,56 @@
 ## Objectives
+- Working with `useReducer`
 - Rendering lists of data using `.map()`.
 - Working with Conditional Rendering.
 - Handle User Input with "Controlled Components."
+- 
+## Working with `useReducer`
+We used `useState` for managing data. However, when state becomes complex for example, when one action changes multiple parts of the state, or when the next state depends heavily on the previous one `useState` can get messy.   
+`useReducer` is an alternative hook. It is based on the idea that instead of telling React what to change directly, we send an Action, and a central function (the Reducer) decides how to update the state.
+### The Three Parts of a Reducer
+1. **State:** The current data.
+2. **Dispatch:** A function used to send commands (Actions).
+3. **Reducer:** A function that takes the current state and an action, and returns the new state.
+
+```jsx
+import { useReducer } from 'react';
+
+function counterReducer(state, action) {
+  switch (action.type) {
+    case 'increment':
+      return { count: state.count + 1 };
+    case 'decrement':
+      return { count: state.count - 1 };
+    case 'reset':
+      return { count: 0 };
+    default:
+      return state; // Do nothing if action is unknown
+  }
+}
+
+function Counter() {
+  // 2. Initializing the hook
+  const [state, dispatch] = useReducer(counterReducer, { count: 0 });
+
+  return (
+    <div>
+      Count: {state.count}
+      {/* 3. Dispatching Actions */}
+      <button onClick={() => dispatch({ type: 'decrement' })}>-</button>
+      <button onClick={() => dispatch({ type: 'reset' })}>Reset</button>
+      <button onClick={() => dispatch({ type: 'increment' })}>+</button>
+    </div>
+  );
+}
+```
+Here we start by creating a reducer function called `counterReducer`. This function receives two parameters: the current state and an action object. Based on the action’s `type`, the reducer returns a new state. In our case, it handles three possible actions: increasing the count, decreasing it, or resetting it back to zero. The reducer’s job is to decide how the state should change in response to each action.
+
+After defining the reducer, we build the `Counter` component, which uses the `useReducer` hook to manage its internal state. Inside the component, we call `useReducer(counterReducer, { count: 0 })`. The first argument is the reducer function we created, and the second argument is the initial state here, an object with `count: 0`.
+
+React returns an array containing two items: the current `state` and the `dispatch` function. The `state` represents the latest value managed by the reducer, and `dispatch` is what we use to send actions to that reducer. For example, when we call `dispatch({ type: 'increment' })`, React passes both the current state and that action to `counterReducer`. The reducer computes the new state and React updates the component accordingly.
+
+Finally, inside the component’s JSX, we display the current count and add three buttons. Each button dispatches a different action decrement, reset, or increment. This structure keeps our state updates predictable, organized, and easy to maintain as the component grows more complex.
+
 ## Rendering Lists in React
 In Workshop 1, we displayed a single piece of data (a counter). However, real-world applications usually deal with lists: a feed of tweets, a gallery of products, or a menu of options. In React, we don't repeat code manually or copy past for every item; we use JavaScript to generate the HTML for us.
 ### `For` Loops in JSX
