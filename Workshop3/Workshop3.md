@@ -1,9 +1,8 @@
 ## Objectives
+- Accessing the DOM directly using `useRef`.
 - Managing side effects with `useEffect`.
 - Implementing Client-Side Routing with React Router.
-- The Children Components 
-- Managing global state with Context API.
-- Accessing the DOM directly using `useRef`.
+- Managing global state with Context API. 
 ## The Lifecycle of a Component
 In the previous workshops, our components were relatively simple: they rendered UI based on props and state. However, real applications need to interact with the "outside world." They need to fetch data, change the document title, or set up subscriptions. These are called Side Effects.
 ### The `useEffect` Hook
@@ -162,49 +161,6 @@ Here, we use the `useParams()` hook to capture dynamic values from the URL. This
 4. The `useParams()` hook returns the object: `{ id: "hero-wars" }`.
 5. Our component reads this ID and uses it to fetch the correct movie data.
 
-## Children Components 
-In React, components often need to wrap or contain other pieces of UI. Instead of hardcoding what goes inside them, React gives every component a special built-in prop called **children**. The `children` prop represents whatever is placed between a component’s opening and closing tags. This allows us to build flexible and reusable layout components that can hold different types of content without making assumptions about what that content is.
-### Why the `children` Prop Exists
-As applications grow, we frequently create components meant to act as containers or layouts such as cards, modals, navigation wrappers, or sidebar sections. These components shouldn’t decide what content they display. Instead, they should simply provide structure or styling, and allow the developer to fill in the content.  
-The `children` prop solves this by letting us inject arbitrary UI into another component, keeping our components clean, modular, and adaptable.
-### Creating a Component That Uses `children`
-There is two ways to make React component accept the children we can use props then access children by using `props.children` or we can use ``{ children }`` destructor as parametre for the component that accept childrens.
-```jsx
-import { Children } from 'react';
-
-function Card({ children }) {
-  return <div className="card">{children}</div>;
-}
-```
-Here, the `Card` component doesn’t know or care what content it will display. Its only job is to wrap the children with a styled `<div>`.
-### Passing Children to a Component
-To pass children, we simply write JSX between the component’s opening and closing tags. React automatically collects that JSX and hands it to the component as the `children` prop.
-```jsx
-function App() {
-  return (
-    <Card>
-      <h2>Hello</h2>
-      <p>This content is passed as children.</p>
-    </Card>
-  );
-}
-```
-Everything inside `<Card> ... </Card>` becomes the value of `children` when `Card` renders.
-### Accessing the `children` Prop
-
-Inside the component, we can place `children` wherever we want it to appear. It can be rendered directly, surrounded by layout, or combined with additional elements.
-```jsx
-function Card({ children }) {
-  return (
-    <div className="card">
-      <header>Card Header</header>
-      <main>{children}</main>
-      <footer>Card Footer</footer>
-    </div>
-  );
-}
-```
-This pattern gives us fine-grained control over how our component wraps its content, without restricting what type of content can be inserted.
 ## The Context API
 As our React applications grow in size, we may encounter a common issue known as Prop Drilling. This happens when a piece of data like a user profile or a theme value needs to be accessed deep inside the component tree, but the components in between don’t actually need it. We end up passing props through layers of components that don’t care about the data, creating unnecessary complexity and making the code harder to maintain.
 
