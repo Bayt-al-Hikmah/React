@@ -80,7 +80,7 @@ In React, we build Single Page Applications (SPAs).
 
 To achieve this, we use the standard library: **React Router**.
 ### Setting Up The Router
-To use routing, we need to import specific components from `react-router-dom`. Think of these as the building blocks of our navigation system.
+To use routing,First we need to install `react-router-dom` using `npm install react-router-dom` then we it to our ``App.js`` file. Think of these as the building blocks of our navigation system.
 ```jsx
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 
