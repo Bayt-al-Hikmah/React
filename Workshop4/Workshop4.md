@@ -94,62 +94,6 @@ function UserList() {
 }
 ```
 By using the custom `useFetch` hook, the component becomes much cleaner and easier to read. Instead of handling the fetch logic, loading states, and error handling inside the component, we simply call `useFetch` and immediately receive `data`, `loading`, and `error`. This keeps the component focused on rendering the UI, while the hook manages all the fetching logic behind the scenes. It also makes the code reusable any component in the app can now fetch data with the same one-line hook call, following the DRY principle and improving overall maintainability.
-
-### Advanced Routing
-In the previous lecture, we created basic routes and links, but React Router offers much more powerful features for building real applications. When working with complex layouts, dashboards, authentication, and dynamic navigation, we often need nested routes, layout components, and **redirects** to control how users move through our app.
-#### Nested Routing & The `<Outlet />`
-Real applications frequently have layouts inside other layouts. For example, a dashboard might include a sidebar that never changes, while only the main content updates as the user navigates to "Profile," "Settings," or other pages. Instead of treating each page like a completely separate route, React Router lets us group them under a shared layout using Nested Routing.
-```jsx
-import { Routes, Route, Link, Outlet } from 'react-router-dom';
-
-function DashboardLayout() {
-  return (
-    <div className="dashboard">
-      <nav>
-        <Link to="profile">Profile</Link> | <Link to="settings">Settings</Link>
-      </nav>
-      <hr />
-      <div className="content">
-        <Outlet />
-      </div>
-    </div>
-  );
-}
-
-function App() {
-  return (
-    <Routes>
-      <Route path="/dashboard" element={<DashboardLayout />}>
-        <Route path="profile" element={<Profile />} />
-        <Route path="settings" element={<Settings />} />
-      </Route>
-    </Routes>
-  );
-}
-```
-Here’s what happens when the user visits `/dashboard/settings`:
-1. React first matches the parent route `/dashboard`, so it renders the `DashboardLayout` component. This component acts like a wrapper or layout for all dashboard-related pages.
-2. Inside `DashboardLayout`, React looks for the `<Outlet />` component.  
-    `<Outlet />` is a placeholder that tells React Router:  
-    “Insert the child route here whenever a nested route matches.”
-3. React then matches the child route `"settings"`, which is nested inside the `/dashboard` route. It takes the `Settings` component and injects it directly into the `<Outlet />` position inside the layout
-
-This allows us to create reusable layouts where only the inner content changes perfect for dashboards, admin panels, and multi-section pages.
-#### Redirects
-Sometimes we need to automatically send users to a different page. A common example is protecting routes: if someone tries to access the dashboard without being logged in, we redirect them to the homepage or login page. React Router provides the `<Navigate>` component for this purpose.
-```jsx
-import { Navigate } from 'react-router-dom';
-
-function ProtectedRoute({ user, children }) {
-  if (!user) {
-    // Redirect to home if user is not defined
-    return <Navigate to="/" replace />;
-  }
-  return children;
-}
-```
-This `ProtectedRoute` component is used to control access to restricted pages. It receives a `user` value and the `children` it should render. If the `user` is not authenticated, it returns `<Navigate to="/" replace />`, which redirects the user to the home page. The `replace` prop ensures that the redirect replaces the current entry in the browser history instead of adding a new one. This prevents the user from clicking “Back” and returning to the protected page. If the user is logged in, the component simply renders the `children`, allowing access to the protected content.
-
 ### Form Validation
 Handling forms manually with `useState` for every keystroke can cause performance issues and makes validation like checking email format, password length difficult.
 
