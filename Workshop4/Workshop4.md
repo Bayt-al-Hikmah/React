@@ -396,39 +396,3 @@ export default function App() {
 Here we created a **Modal** component that accepts `children` as a prop. Inside this component, we use **`ReactDOM.createPortal()`** to render the children into a different part of the DOM. The `createPortal` function takes **two arguments**: the React element we want to render and the DOM node where we want to mount it (`document.getElementById("modal-root")`).
 
 Finally, we used the `Modal` component just like any other React component inside the `App` component. Even though the modal content appears outside the main root element, it is still fully controlled by React, allowing state, props, and events to work normally. 
-### Forwarding Refs
-In React, refs allow us to directly access a DOM element or a component instance. However, there are cases where a parent component needs to access an element that lives inside a child component. Normally, props cannot be used to pass refs, so React provides **`forwardRef`** to handle this scenario.
-#### Working with Forwarded Refs
-To use forwarded refs, we wrap the child component with `forwardRef`, which allows it to accept a ref from the parent. The parent can then attach the ref to the desired DOM element inside the child component. This is especially useful for inputs, textareas, or custom components where the parent needs to control focus, selection, or measurements.
-**Example**
-```jsx
-import React, { forwardRef, useRef } from "react";
-
-const CustomInput = forwardRef((props, ref) => {
-  return <input ref={ref} type="text" placeholder="Type something..." />;
-});
-
-export default function App() {
-  const inputRef = useRef();
-
-  const focusInput = () => {
-    inputRef.current.focus(); 
-  };
-
-  return (
-    <div>
-      <CustomInput ref={inputRef} />
-      <button onClick={focusInput}>Focus Input</button>
-    </div>
-  );
-}
-```
-Here we created a **`CustomInput`** component that uses **`forwardRef`** to accept a ref from its parent. The `forwardRef` function takes a **render function** as its argument. This render function receives two parameters:
-1. **`props`**  all the props passed to the component.
-2. **`ref`** the forwarded ref from the parent component.
-
-Inside `CustomInput`, we attach this `ref` directly to the internal `<input>` element. This allows the parent component to access and manipulate the input element directly, such as focusing it or reading its value.
-
-In the parent **`App`** component, we created a ref (`inputRef`) using **`useRef()`** and passed it to `CustomInput` as a prop. We also added a button that, when clicked, calls `inputRef.current.focus()`, which directly focuses the input inside the child component.
-
-Even though the input is defined inside the child, React allows the parent to control it via the forwarded ref. This keeps the child component encapsulated while enabling precise DOM interactions, making `forwardRef` especially useful for reusable input components, custom focus management, or integrations with third-party libraries.
