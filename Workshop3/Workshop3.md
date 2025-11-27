@@ -52,30 +52,29 @@ function UserList() {
   return <ul>{users.map(u => <li key={u.id}>{u.name}</li>)}</ul>;
 }
 ```
-We started by we definning two pieces of state.
-
+We started by definning two pieces of state.
 - users: We initialize this as an empty array [] because we expect a list of items.
 - loading: We initialize this as true. The data isn't ready the moment the component mounts, so we want the "Loading..." message to appear immediately.
 
-Next, we placed our `fetch` call inside `useEffect`. Here we set the dependency array to empty arry (`[]`). This instructs React to run the function only once, immediately after the first render. 
+Next, we used  `fetch` call inside `useEffect` with the dependency array set to empty array (`[]`). This tell React to fetch data only after the first render. 
 
-Inside the effect, we used the standard browser `fetch` API. We converted the raw response into JSON, and once we obtained the data, we performed a state update:
+After fetching and retriving data. We converted the raw response into JSON, and update our states:
 - `setUsers(data)` stores the list.
 - `setLoading(false)` signals to React that we are finished waiting.
 
-Before rendering the list, we check the loading state. This pattern is known as an "Early Return." If the data is still loading, we return a simple paragraph tag and stop execution. React ignores the rest of the function, preventing us from mapping over empty data or displaying a blank screen.
+Before rendering the list, we check the loading state. This pattern is known as an "Early Return." If the data is still loading, we return a simple paragraph tag and stop execution.
 
 Once `loading` becomes `false`, the component re-renders. It skips the early return and proceeds to the final return statement. Here, we use the `.map()` method to iterate through our `users` state and generate the `<li>` items.
 ## Client-Side Routing
-In traditional web development, every time we click a link, the browser makes a request to the server, the screen flashes white, and a brand new HTML page loads. This is slow and feels "clunky." Cuz we have to load full html for every interection
+In traditional web development, every time we click a link, the browser makes a request to the server, the screen flashes white, and a brand new HTML page loads. This is slow and feels "clunky." We loading a full html page for every interection
 
-In React, we build Single Page Applications (SPAs).
+React, Focuse on building Single Page Applications (SPAs).
 1. **Single Page:** We only load the HTML file once, when the user first visits.
 2. **JavaScript Navigation:** When the user clicks a link, React intercepts that click, prevents the browser from refreshing, and instantly swaps the components on the screen.
 
 To achieve this, we use the standard library: **React Router**.
 ### Setting Up The Router
-To use routing,First we need to install `react-router-dom` using `npm install react-router-dom` then we import it to our ``App.js`` file.
+First we need to install `react-router-dom` using `npm install react-router-dom` then we import it to our ``App.js`` file.
 ```jsx
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 
@@ -95,7 +94,7 @@ function App() {
   );
 }
 ```
-To create the routing system We begin by wrapping our entire application with `<BrowserRouter>`. This component acts as the manager; it listens to the browser's address bar and notifies React whenever the URL changes.
+To create the routing system, We begin by wrapping our entire application with `<BrowserRouter>`. This component acts as the manager; it listens to the browser's address bar and notifies React whenever the URL changes.
 
 Next, we create navigation links using the `<Link>` component. Instead of an `href`, this component uses a `to` prop to specify the destination route (e.g., `to="/about"`).
 
