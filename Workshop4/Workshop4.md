@@ -94,70 +94,7 @@ function UserList() {
 }
 ```
 By using the custom `useFetch` hook, the component becomes much cleaner and easier to read. Instead of handling the fetch logic, loading states, and error handling inside the component, we simply call `useFetch` and immediately receive `data`, `loading`, and `error`. This keeps the component focused on rendering the UI, while the hook manages all the fetching logic behind the scenes. It also makes the code reusable any component in the app can now fetch data with the same one-line hook call, following the DRY principle and improving overall maintainability.
-### Form Validation
-Handling forms manually with `useState` for every keystroke can cause performance issues and makes validation like checking email format, password length difficult.
 
-While we can do it manually, the industry standard is to use a library like React Hook Form. It uses uncontrolled components (refs) to manage form data efficiently without re-rendering the component on every letter typed.
-#### Practice: Signup Form with Validation
-To use this, we must install the library: `npm install react-hook-form`.
-```jsx
-import { useForm } from "react-hook-form";
-
-function SignupForm() {
-  const { 
-    register, 
-    handleSubmit, 
-    formState: { errors } 
-  } = useForm();
-
-  const onSubmit = (data) => {
-    console.log("Form Submitted:", data);
-  };
-
-  return (
-    <form onSubmit={handleSubmit(onSubmit)}>
-      <div>
-        <label>Username</label>
-        
-        <input 
-          {...register("username", { required: "Username is required" })} 
-        />
-        {errors.username && <p className="error">{errors.username.message}</p>}
-      </div>
-      
-      <div>
-        <label>Email</label>
-        <input 
-          {...register("email", { 
-            required: "Email is required", 
-            pattern: {
-              value: /^\S+@\S+$/i,
-              message: "Invalid email format"
-            }
-          })} 
-        />
-        {errors.email && <p className="error">{errors.email.message}</p>}
-      </div>
-
-      <button type="submit">Sign Up</button>
-    </form>
-  );
-}
-```
-We started by using the `useForm()` hook. It returns three main things we need:
-- **`register`**  connects each input to the form and lets us add validation rules
-- **`handleSubmit`** runs validation before calling our submit function
-- **`errors`** stores error messages when a field fails validation
-    
-Next, we created the `onSubmit` function. This will run only when the form is submitted and all inputs pass validation. React Hook Form automatically gives it the form data.
-
-Finally, we built the form itself. Each input is connected to the form using the `register()` function, which takes **two arguments**: the field name and an object defining the validation rules.
-- For the username, we set it as **required**.
-- For the email, we added both a **required rule** and a **pattern rule** to ensure the value matches a valid email format.
-
-If an input does not meet its validation rule, React Hook Form adds an entry to `errors`. We check for that using `errors.fieldName`, and if it exists, we display the error message under the input.
-
-This way, the form handles validation automatically, shows useful error messages, and only submits when the input values are valid.
 ## Performance Optimization and State Management
 As our React applications grow, performance and state management become critical. Poorly managed state or unnecessary re-renders can slow down even small apps. In this section, we explore strategies to optimize performance and efficiently manage state.
 ### Memoization
