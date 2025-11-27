@@ -328,7 +328,7 @@ function Example() {
   );
 }
 ```
-Here we initialized `inputRef` as an object with a `current` property set to `null`. When React renders the `<input>` element, it notices the `ref` and it assigns the input element to `inputRef.current`. When we call `focusInput` we check the value `inputRef.current` if it not null this mean it set to the input element we call we use `inputRef.current.focus()` to focus the input field.
+Here we initialized `inputRef` as an object with a `current` property set to `null`. When React renders the `<input>` element, it notices the `ref` and it assigns the input element to `inputRef.current`. When we call `focusInput` we check the value `inputRef.current` if it not null this mean it set to the input element we use `inputRef.current.focus()` to focus the input field.
 ### Refs Persist Between Renders
 Another feature of `useRef` is that it never resets during re-renders, yet updating it does not trigger a new render. This makes it perfect for "hidden state" data that needs to be remembered but doesn't affect what the user sees.
 
@@ -369,19 +369,17 @@ function App() {
 
 export default App;
 ```
-Here we created a counting app that keep track of both previous and current count,
-In this example, we create a normal state variable `count` and a ref called `previousCount`. Since refs persist across renders without causing re-renders, they are perfect for storing values like “the previous state.” We use a `useEffect` **without a dependency array**, which means the effect runs after **every** render. Inside this effect, we simply update `previousCount.current` to match the latest value of `count`. Because updating a ref does _not_ trigger a re-render, this avoids unnecessary updates.    
+Here, we created a counting app that keeps track of both the previous and current count. We use the **count** state to store and update the current value, and a ref called **previousCount** to store the previous one. Since the ``useEffect`` doesn't have a dependency array, it runs after every render. Inside this effect, we assign previousCount.current = count. Initially, count is 0, and the effect sets the ref to 0.   
 
-The component displays both the current count (from state) and the previous count (from the ref). When the user clicks the "Increment" button, `setCount` updates the state, which triggers a re-render. After that render completes, the effect runs again and stores the new previous value.   
+When the user clicks the Increment button, ``setCount`` updates the state, and React immediately re-renders the component with the new count value (e.g., 1). During this new render, the ``previousCount.current`` value displayed in the UI is still 0 (the value from the render before the click). After this render finishes, the useEffect runs, updating previousCount.current to the current count value (1), preparing it to display the correct "previous" value in the next render cycle.
 
-If we tried to store the previous value using `useState`, updating the state inside the effect would cause another render, which would update the state again, and so on creating an infinite loop. Using `useRef` avoids this problem because refs update silently without triggering React’s render cycle.
 ### Forwarding Refs
-In React, refs allow us to directly access a DOM element or a component instance. However, there are cases where a parent component needs to access an element that lives inside a child component. Normally, props cannot be used to pass refs, so React provides **`forwardRef`** to handle this scenario.
-#### Working with Forwarded Refs
-To use forwarded refs, we wrap the child component with `forwardRef`, which allows it to accept a ref from the parent. The parent can then attach the ref to the desired DOM element inside the child component. This is especially useful for inputs, textareas, or custom components where the parent needs to control focus, selection, or measurements.
+We used before ``ref`` to access input field and focus it. However what if the input field was inside child element or other component.Here to access it we use `forwardRef`.   
+
+The forwardRef, wrap the child component and allow the parent to attach the ref to the desired DOM element inside the child component.   
 **Example**
 ```jsx
-import React, { forwardRef, useRef } from "react";
+import { forwardRef, useRef } from "react";
 
 const CustomInput = forwardRef((props, ref) => {
   return <input ref={ref} type="text" placeholder="Type something..." />;
@@ -402,16 +400,13 @@ export default function App() {
   );
 }
 ```
-Here we created a **`CustomInput`** component that uses **`forwardRef`** to accept a ref from its parent. The `forwardRef` function takes a **render function** as its argument. This render function receives two parameters:
+Here we created a `CustomInput` component usîng `forwardRef` which takes a render function as its argument. This render function receives two parameters:
 1. **`props`**  all the props passed to the component.
 2. **`ref`** the forwarded ref from the parent component.
 
 Inside `CustomInput`, we attach this `ref` directly to the internal `<input>` element. This allows the parent component to access and manipulate the input element directly, such as focusing it or reading its value.
 
-In the parent **`App`** component, we created a ref (`inputRef`) using **`useRef()`** and passed it to `CustomInput` as a prop. We also added a button that, when clicked, calls `inputRef.current.focus()`, which directly focuses the input inside the child component.
-
-Even though the input is defined inside the child, React allows the parent to control it via the forwarded ref. This keeps the child component encapsulated while enabling precise DOM interactions, making `forwardRef` especially useful for reusable input components, custom focus management, or integrations with third-party libraries.
-
+In the parent **`App`** component, we created a ref (`inputRef`) using `useRef()` and passed it to `CustomInput` as a prop. We also added a button that, when clicked, calls `inputRef.current.focus()`, which directly focuses the input inside the child component.
 ## Building a Movie Database App
 ### Introduction
 Let's combine the concepts of API fetching, Routing, and Context to build a "Mini Movie DB." Users will be able to search for TV shows using the **TVMaze API**, view a list of results, and click on a show to see a dedicated details page.
