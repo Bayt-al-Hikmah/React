@@ -67,7 +67,7 @@ Before rendering the list, we check the loading state. This pattern is known as 
 
 Once `loading` becomes `false`, the component re-renders. It skips the early return and proceeds to the final return statement. Here, we use the `.map()` method to iterate through our `users` state and generate the `<li>` items.
 ## Client-Side Routing
-In traditional web development, every time you click a link, the browser makes a request to the server, the screen flashes white, and a brand new HTML page loads. This is slow and feels "clunky." 
+In traditional web development, every time we click a link, the browser makes a request to the server, the screen flashes white, and a brand new HTML page loads. This is slow and feels "clunky." Cuz we have to load full html for every interection
 
 In React, we build Single Page Applications (SPAs).
 1. **Single Page:** We only load the HTML file once, when the user first visits.
@@ -75,7 +75,7 @@ In React, we build Single Page Applications (SPAs).
 
 To achieve this, we use the standard library: **React Router**.
 ### Setting Up The Router
-To use routing,First we need to install `react-router-dom` using `npm install react-router-dom` then we it to our ``App.js`` file. Think of these as the building blocks of our navigation system.
+To use routing,First we need to install `react-router-dom` using `npm install react-router-dom` then we import it to our ``App.js`` file.
 ```jsx
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 
@@ -95,11 +95,11 @@ function App() {
   );
 }
 ```
-We begin by wrapping our entire application with `<BrowserRouter>`. This component acts as the manager; it listens to the browser's address bar and notifies React whenever the URL changes.
+To create the routing system We begin by wrapping our entire application with `<BrowserRouter>`. This component acts as the manager; it listens to the browser's address bar and notifies React whenever the URL changes.
 
 Next, we create navigation links using the `<Link>` component. Instead of an `href`, this component uses a `to` prop to specify the destination route (e.g., `to="/about"`).
 
-To determine **what** to display, we use the `<Routes>` component. This acts like a JavaScript `switch` statement: it looks at the current URL, scans through its children, and renders the **first** route that matches.
+To determine **what** to display, we use the `<Routes>` component. This acts like a JavaScript `switch` statement: it looks at the current URL, scans through its children, and renders the first route that matches.
 
 Finally, inside the `<Routes>` container, we define individual `<Route>` components. Each route takes two essential props:
 - `path`: The URL pattern to look for (e.g., `/about`).
@@ -117,11 +117,11 @@ If we use `<a href="/about">`, the browser will force a hard refresh. This reloa
 ```
 The `<Link>` component updates the URL in the address bar effectively "silently," allowing the `<Routes>` component to see the change and update the screen instantly without reloading the page.
 ### Dynamic Routes & URL Params
-Real applications rarely have static URLs like `/about` or `/contact`. Usually, we have data-driven pages. For example, if we have a database of 5,000 movies, we cannot write 5,000 separate `<Route>` lines.
+Real applications need more then just static URLs like `/about` or `/contact`. Usually, we have data-driven pages. For example, if we have a database of 5,000 movies, we cannot write 5,000 separate `<Route>` lines.
 
-Instead, we use Dynamic Segments.
+Instead, we use Dynamic Segments, where each movie had id and visiting the URL with that id will load it data.
 #### The Setup
-We use a colon `:` to tell React Router that a part of the URL is a variable, a placeholder.
+To apply that we use a colon `:` it tell React Router that a part of the URL is a variable, a placeholder.
 ```jsx
 // In your App.js Routes
 // The ":id" tells React: "Expect ANY value here, and call it 'id'"
@@ -136,7 +136,6 @@ import { useParams } from 'react-router-dom';
 
 function MovieDetail() {
   const params = useParams(); 
-  
   const movieId = params.id; 
 
   return (
@@ -157,6 +156,56 @@ Here, we use the `useParams()` hook to capture dynamic values from the URL. This
 4. The `useParams()` hook returns the object: `{ id: "hero-wars" }`.
 5. Our component reads this ID and uses it to fetch the correct movie data.
 
+### Advanced Routing
+React Router offers much more powerful features thes hust building static and dynamic routes. When working with complex layouts, dashboards, authentication, and dynamic navigation, we often need nested routes, layout components, and **redirects** to control how users move through our app.
+#### Nested Routing & The `<Outlet />`
+Nested Routing is feature that allow us to create layouts inside other layouts. For example, a dashboard might include a sidebar that never changes, while only the main content updates as the user navigates to "Profile," "Settings," or other pages. Instead of treating each page like a completely separate route, React Router lets us group them under a shared layout using Nested Routing.
+```jsx
+import { Routes, Route, Link, Outlet } from 'react-router-dom';
+
+function DashboardLayout() {
+  return (
+    <div className="dashboard">
+      <nav>
+        <Link to="profile">Profile</Link> | <Link to="settings">Settings</Link>
+      </nav>
+      <hr />
+      <div className="content">
+        <Outlet />
+      </div>
+    </div>
+  );
+}
+
+function App() {
+  return (
+    <Routes>
+      <Route path="/dashboard" element={<DashboardLayout />}>
+        <Route path="profile" element={<Profile />} />
+        <Route path="settings" element={<Settings />} />
+      </Route>
+    </Routes>
+  );
+}
+```
+Here both ``profile`` and ``settings`` live inside the dashboard routes and have shared layout so instead creating a completely separate route, we used the nested layout, when the user visits `/dashboard/settings`:
+1. React first matches the parent route `/dashboard`, so it renders the `DashboardLayout` component. This component acts like a wrapper or layout for all dashboard-related pages.
+2. Inside `DashboardLayout`, React looks for the `<Outlet />` component. which act like placeholder that tells React Router: “Insert the child route here whenever a nested route matches.”
+3. React then matches the child route `"settings"`, which is nested inside the `/dashboard` route. It takes the `Settings` component and injects it directly into the `<Outlet />` position inside the layout
+#### Redirects
+The final powerfull feature that React Router offer is to automatically send and redirect users to a different page. A common example is protecting routes: if someone tries to access the dashboard without being logged in, we redirect them to the homepage or login page. React Router provides the `<Navigate>` component for this purpose.
+```jsx
+import { Navigate } from 'react-router-dom';
+
+function ProtectedRoute({ user, children }) {
+  if (!user) {
+    // Redirect to home if user is not defined
+    return <Navigate to="/" replace />;
+  }
+  return children;
+}
+```
+The `ProtectedRoute` component is used to control access to restricted pages. It receives a `user` value and the `children` it should render. If the `user` is not authenticated, it returns `<Navigate to="/" replace />`, which redirects the user to the home page. The `replace` prop ensures that the redirect replaces the current entry in the browser history instead of adding a new one. This prevents the user from clicking “Back” and returning to the protected page. If the user is logged in, the component simply renders the `children`, allowing access to the protected content.
 ## The Context API
 As our React applications grow in size, we may encounter a common issue known as Prop Drilling. This happens when a piece of data like a user profile or a theme value needs to be accessed deep inside the component tree, but the components in between don’t actually need it. We end up passing props through layers of components that don’t care about the data, creating unnecessary complexity and making the code harder to maintain.
 
