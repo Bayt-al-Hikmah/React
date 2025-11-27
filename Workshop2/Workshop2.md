@@ -169,6 +169,70 @@ function Form() {
 ```
 When the user types, the `onChange` listener detects the event immediately. Inside our function, we access the `event.target` which represents the input element to retrieve the value the user just typed.   
 We then use `setText` to update our state. Once the state changes, React triggers a re-render, updating the input field to match the new text we just stored.
+### Form Validation
+Form need validation Handling forms manually with `useState` for every keystroke can cause performance issues and makes validation like checking email format, password length difficult.
+
+While we can do it manually, the industry standard is to use a library like React Hook Form. It uses uncontrolled components (refs) to manage form data efficiently without re-rendering the component on every letter typed.
+#### Practice: Signup Form with Validation
+To use this, we must install the library: `npm install react-hook-form`.
+```jsx
+import { useForm } from "react-hook-form";
+
+function SignupForm() {
+  const { 
+    register, 
+    handleSubmit, 
+    formState: { errors } 
+  } = useForm();
+
+  const onSubmit = (data) => {
+    console.log("Form Submitted:", data);
+  };
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)}>
+      <div>
+        <label>Username</label>
+        
+        <input 
+          {...register("username", { required: "Username is required" })} 
+        />
+        {errors.username && <p className="error">{errors.username.message}</p>}
+      </div>
+      
+      <div>
+        <label>Email</label>
+        <input 
+          {...register("email", { 
+            required: "Email is required", 
+            pattern: {
+              value: /^\S+@\S+$/i,
+              message: "Invalid email format"
+            }
+          })} 
+        />
+        {errors.email && <p className="error">{errors.email.message}</p>}
+      </div>
+
+      <button type="submit">Sign Up</button>
+    </form>
+  );
+}
+```
+We started by using the `useForm()` hook. It returns three main things we need:
+- **`register`**  connects each input to the form and lets us add validation rules
+- **`handleSubmit`** runs validation before calling our submit function
+- **`errors`** stores error messages when a field fails validation
+    
+Next, we created the `onSubmit` function. This will run only when the form is submitted and all inputs pass validation. React Hook Form automatically gives it the form data.
+
+Finally, we built the form itself. Each input is connected to the form using the `register()` function, which takes **two arguments**: the field name and an object defining the validation rules.
+- For the username, we set it as **required**.
+- For the email, we added both a **required rule** and a **pattern rule** to ensure the value matches a valid email format.
+
+If an input does not meet its validation rule, React Hook Form adds an entry to `errors`. We check for that using `errors.fieldName`, and if it exists, we display the error message under the input.
+
+This way, the form handles validation automatically, shows useful error messages, and only submits when the input values are valid.
 ## Building To-Do List App
 ### Introduction
 Let's put what we have learned into practice and build a To-Do List App. Users will have the ability to add, and remove tasks.
