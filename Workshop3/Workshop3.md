@@ -206,20 +206,18 @@ function ProtectedRoute({ user, children }) {
 ```
 The `ProtectedRoute` component is used to control access to restricted pages. It receives a `user` value and the `children` it should render. If the `user` is not authenticated, it returns `<Navigate to="/" replace />`, which redirects the user to the home page. The `replace` prop ensures that the redirect replaces the current entry in the browser history instead of adding a new one. This prevents the user from clicking “Back” and returning to the protected page. If the user is logged in, the component simply renders the `children`, allowing access to the protected content.
 ## The Context API
-As our React applications grow in size, we may encounter a common issue known as Prop Drilling. This happens when a piece of data like a user profile or a theme value needs to be accessed deep inside the component tree, but the components in between don’t actually need it. We end up passing props through layers of components that don’t care about the data, creating unnecessary complexity and making the code harder to maintain.
+In our previous workshop, we built a Todo app and encountered a common issue: a child component needed access to state that was created in a top-level component. To solve this, we passed the state down through multiple components using props this is known as prop drilling.   
 
-React provides a built-in solution to this problem: the **Context API**.We can think of Context as a way to “broadcast” data to any component in our app without manually passing it down through every layer. Instead of drilling, we “teleport” values directly where they are needed.
-### How Context Works
-Context has three main parts, and each plays an important role in how data flows across our application.
-#### Creating the Context
-To start, we create a context object using `createContext`. This establishes a dedicated “data channel” that the rest of the app can access.
+React solves this with the Context API. We can think of Context as a way to “broadcast” data to any component that needs it, without manually passing props through every level. Instead of drilling state downward, we can “teleport” values directly to the components that use them.
+### Creating the Context
+To start, we create a context object using `createContext`.
 ```jsx
 import { createContext } from "react";
 
 export const ThemeContext = createContext();
 ```
 This gives us a container where we will store values we want to share globally like themes, user settings, or language preferences.
-#### The Provider
+### The Provider
 Once our context is created, we use its **Provider** component to make the data available to any nested components. The Provider accepts a special prop called `value`. Whatever we put inside `value` becomes accessible to all children wrapped inside this Provider.
 ```jsx
 function App() {
@@ -230,8 +228,8 @@ function App() {
   );
 }
 ```
-In this example, we wrap our `Dashboard` and everything inside it within `ThemeContext.Provider`. Every child component now has access to the value `"dark"` without receiving it through props.
-#### Reading Context with `useContext`
+Here we wrap our `Dashboard` by the `ThemeContext` Provider. Every child component now has access to the value `"dark"`.
+### Reading Context with `useContext`
 Finally, whenever we want to use the shared data, we call the `useContext` hook. This hook looks for the nearest matching Provider above the component in the tree and gives us the exact value it holds.
 ```jsx
 import { useContext } from "react";
@@ -243,18 +241,7 @@ function Button() {
   return <button className={theme}>Click me</button>;
 }
 ```
-Here, the `Button` component instantly receives the value `"dark"` from the Provider. No props, no chains, no drilling.
-### Why Use Context?
-Context shines in situations where multiple components need access to the same information, such as:
-- Authentication state (logged-in user)
-- UI themes (dark/light mode)
-- Language preferences (English, French, etc.)
-- App-wide settings (currency, layout mode)
-- Data from global stores or APIs
-
-
-Instead of sending these values through multiple layers of components, Context centralizes them and makes them accessible anywhere in your application.
-
+Here, the `Button` component instantly receives the value `"dark"` from the Provider.
 ### A More Complete Example
 Below is a small, fully functional demonstration of Context in action. Here, we share a theme value and toggle it using nested components.
 ```jsx
@@ -291,9 +278,9 @@ function ThemeToggle() {
   );
 }
 ```
-We first created our context using `createContext()`. This gave us a dedicated place to store shared values that multiple components might need, such as the current theme or user information. After that, we wrapped the parts of our application that require access to this data inside the Context Provider. The Provider accepts a `value` prop, and whatever we place inside it becomes globally available to all components nested within the Provider. In our example, the `App` component uses the Provider to expose both the current theme and the function used to toggle it.
+We first created our context using `createContext()`. After that, we wrapped the `Page` component inside the Context Provider. The Provider accepts a `value` prop, with it we exposed both the current theme and the function used to toggle it.
 
-From there, the data flows naturally through our component tree without needing to manually pass props. The `App` component holds a piece of state (the current theme) and makes it available to its children via the Provider. The `Page` component sits between the Provider and the component that actually needs the theme, but since `Page` does not use the theme itself, we don’t need to pass it down through props. Finally, the `ThemeToggle` component, which lives deeper in the tree, uses the `useContext(ThemeContext)` hook to instantly access both the current theme value and the updater function. Because of this, it can read and modify the theme without receiving anything from its parent.
+Finally, the `ThemeToggle` component, which lives deeper in the tree, uses the `useContext(ThemeContext)` hook to instantly access both the current theme value and the updater function. with that it can read and modify the theme without receiving anything from its parent.
 ## The `useRef` Hook
 When data changes in React, we typically update **state**, which triggers the component to re-render and update the UI. However, not all values belong in state. Sometimes, we need to store information that persists between renders but **should not** cause the component to re-paint.
 
