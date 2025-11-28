@@ -178,11 +178,85 @@ Now to manage and manilulate our store we created Counter, component inside it w
 - **`useSelector`:** Extracts data from the Redux store state.
 - **`useDispatch`:** Returns the `dispatch` function, which sends an Action to the Store.
 
-Using useSelector with the helper function state => state.count, we accessed the count value from the Redux store and displayed it inside the <h1> element.
+Using useSelector with the helper function state => state.count, we accessed the count value from the Redux store and displayed it inside the ``<h1>`` element.
 
 On the other hand, useDispatch gives us the dispatch function, which we use to send actions that update the data in our store.
 
 Finally, in the App component, we wrapped our Counter component with the Provider and passed the store to it through the store prop. This makes the store and therefore the counter state available to the entire component tree, including the Counter component.
+
+## Higher-Order Components And Portals
+### Higher-Order Components
+A Higher-Order Component (HOC) is a function that takes a component as input and returns a new component with extra features or enhanced behavior. HOCs were widely used for reusing component logic before Hooks existed, but they are still important to understand because many libraries and legacy codebases still rely on them.
+
+To create an HOC, we define a function that accepts a component, wraps it with additional logic, and returns a new component. We can think of it like a factory function that builds a modified version of a component by adding new capabilities while keeping the original component intact.
+
+**Example:**
+```jsx
+function withLogger(WrappedComponent) {
+  return function EnhancedComponent(props) {
+    console.log(`Rendering component: ${WrappedComponent.name}`);
+    return <WrappedComponent {...props} />;
+  };
+}
+
+function Hello() {
+  return <h2>Hello World</h2>;
+}
+
+const HelloWithLogger = withLogger(Hello);
+
+export default function App() {
+  return <HelloWithLogger />;
+}
+```
+Here we have three main parts:
+1. **`withLogger`**, which represents our Higher-Order Component.  
+    It takes another component as input (`WrappedComponent`) and returns a new component that logs a message every time it renders. Inside it, we return `EnhancedComponent`, which prints to the console and then renders the original component with all its props.
+    
+2. Next, we created a simple component called **`Hello`**, which just displays “Hello World”.
+3. Finally, we used our HOC by calling `withLogger(Hello)` to create **`HelloWithLogger`**. This enhanced version of `Hello` now logs a message whenever it renders. In the `App` component, we render `HelloWithLogger` instead of the plain `Hello`.
+
+### Portals
+Normally, React renders everything inside the root DOM element (usually `<div id="root">`).  
+However, there are situations where we need a component to visually appear somewhere else in the DOM, while still being logically part of the React component tree.
+
+This is exactly what **Portals** allow us to do, Portals let us render a React component into a completely different DOM node, without breaking React's rendering cycle or event handling. React still manages state, props, and updates normally only the final DOM position changes.  
+#### Working with Portals
+To work with Portals, we first need to create a separate DOM element in our HTML file where the portal will be rendered. Then, in React, we use `ReactDOM.createPortal()` to send a component’s content into that DOM node. Even though the component appears outside the main root element, React still controls it normally, making Portals perfect for modals, popups, and tooltips.
+
+**Example**
+First we create our new DOM element where the protel will be render
+```jsx
+<div id="modal-root"></div>
+```
+This is an extra DOM node where the modal will be mounted.
+
+After thet we create the React logic
+```jsx
+import ReactDOM from "react-dom";
+
+function Modal({ children }) {
+  return ReactDOM.createPortal(
+    <div className="modal">{children}</div>,
+    document.getElementById("modal-root")
+  );
+}
+
+export default function App() {
+  return (
+    <div>
+      <h2>Main App Content</h2>
+      <Modal>
+        <p>This is inside a portal modal!</p>
+      </Modal>
+    </div>
+  );
+}
+```
+Here we created a **Modal** component that accepts `children` as a prop. Inside this component, we use **`ReactDOM.createPortal()`** to render the children into a different part of the DOM. The `createPortal` function takes **two arguments**: the React element we want to render and the DOM node where we want to mount it (`document.getElementById("modal-root")`).
+
+Finally, we used the `Modal` component just like any other React component inside the `App` component. Even though the modal content appears outside the main root element, it is still fully controlled by React, allowing state, props, and events to work normally. 
+
 
 ## Performance Optimization
 As our React applications grow, performance and state management become critical. Poorly managed state or unnecessary re-renders can slow down even small apps. In this section, we explore strategies to optimize performance and efficiently manage state.
@@ -258,75 +332,3 @@ function App() {
 }
 ```
 In this example `React.lazy` and `Suspense` implement lazy loading. The `Profile` component is dynamically imported, meaning it is only loaded when needed, rather than at the initial app load. `Suspense` provides a fallback UI (`Loading...`) while the component is being fetched. This reduces the initial bundle size and improves performance, especially for large applications.
-## Higher-Order Components And Portals
-### Higher-Order Components
-A Higher-Order Component (HOC) is a function that takes a component as input and returns a new component with extra features or enhanced behavior. HOCs were widely used for reusing component logic before Hooks existed, but they are still important to understand because many libraries and legacy codebases still rely on them.
-
-To create an HOC, we define a function that accepts a component, wraps it with additional logic, and returns a new component. We can think of it like a factory function that builds a modified version of a component by adding new capabilities while keeping the original component intact.
-
-**Example:**
-```jsx
-function withLogger(WrappedComponent) {
-  return function EnhancedComponent(props) {
-    console.log(`Rendering component: ${WrappedComponent.name}`);
-    return <WrappedComponent {...props} />;
-  };
-}
-
-function Hello() {
-  return <h2>Hello World</h2>;
-}
-
-const HelloWithLogger = withLogger(Hello);
-
-export default function App() {
-  return <HelloWithLogger />;
-}
-```
-Here we have three main parts:
-1. **`withLogger`**, which represents our Higher-Order Component.  
-    It takes another component as input (`WrappedComponent`) and returns a new component that logs a message every time it renders. Inside it, we return `EnhancedComponent`, which prints to the console and then renders the original component with all its props.
-    
-2. Next, we created a simple component called **`Hello`**, which just displays “Hello World”.
-3. Finally, we used our HOC by calling `withLogger(Hello)` to create **`HelloWithLogger`**. This enhanced version of `Hello` now logs a message whenever it renders. In the `App` component, we render `HelloWithLogger` instead of the plain `Hello`.
-
-### Portals
-Normally, React renders everything inside the root DOM element (usually `<div id="root">`).  
-However, there are situations where we need a component to visually appear somewhere else in the DOM, while still being logically part of the React component tree.
-
-This is exactly what **Portals** allow us to do, Portals let us render a React component into a completely different DOM node, without breaking React's rendering cycle or event handling. React still manages state, props, and updates normally only the final DOM position changes.  
-#### Working with Portals
-To work with Portals, we first need to create a separate DOM element in our HTML file where the portal will be rendered. Then, in React, we use `ReactDOM.createPortal()` to send a component’s content into that DOM node. Even though the component appears outside the main root element, React still controls it normally, making Portals perfect for modals, popups, and tooltips.
-
-**Example**
-First we create our new DOM element where the protel will be render
-```jsx
-<div id="modal-root"></div>
-```
-This is an extra DOM node where the modal will be mounted.
-
-After thet we create the React logic
-```jsx
-import ReactDOM from "react-dom";
-
-function Modal({ children }) {
-  return ReactDOM.createPortal(
-    <div className="modal">{children}</div>,
-    document.getElementById("modal-root")
-  );
-}
-
-export default function App() {
-  return (
-    <div>
-      <h2>Main App Content</h2>
-      <Modal>
-        <p>This is inside a portal modal!</p>
-      </Modal>
-    </div>
-  );
-}
-```
-Here we created a **Modal** component that accepts `children` as a prop. Inside this component, we use **`ReactDOM.createPortal()`** to render the children into a different part of the DOM. The `createPortal` function takes **two arguments**: the React element we want to render and the DOM node where we want to mount it (`document.getElementById("modal-root")`).
-
-Finally, we used the `Modal` component just like any other React component inside the `App` component. Even though the modal content appears outside the main root element, it is still fully controlled by React, allowing state, props, and events to work normally. 
