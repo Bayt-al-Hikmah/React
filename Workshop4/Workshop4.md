@@ -1,12 +1,27 @@
 ## Objectives
-- Working with React Advanced Concepts
+- Default Props and Prop Validation
+- Creating Costum Hooks
 - Performance Optimization and State Management
-## Advanced React Concepts
-We have covered the basics of components, state, and effects. Now, it is time to look at tools that make our applications scalable, maintainable, and robust. As applications grow, relying solely on `useState` or basic props can lead to messy code. We need advanced patterns to handle complexity.
-### Default Props and Prop Validation
-JavaScript is a loosely typed language. This means if we pass a number to a component that expects a string, or if we forget to pass a prop entirely, React won't stop us until the app crashes in the browser.To prevent this, we use PropTypes to define expectations for our components, and Default Parameters to ensure values exist even if they aren't passed.
 
-To use validation, we need the `prop-types` package we can install it using `npm install prop-types`. This package allow us to create something like as a contract: "I expect `title` to be a string, and it is required."
+## Default Props and Prop Validation
+JavaScript is a loosely typed language. This means if we pass a number to a component that expects a string, or if we forget to pass a prop entirely, React won't stop us until the app crashes in the browser.To prevent this, we use PropTypes to define expectations for our components, and Default Parameters to ensure values exist even if they aren't passed.
+### Default Props
+To set a default, we simply assign a value to the props in the function declaration.
+```jsx
+function Button({ label, onClick, color = "blue" }) {
+  // We used "blue" as a default parameter above
+  const styles = { backgroundColor: color, color: "white" };
+
+  return (
+    <button style={styles} onClick={onClick}>
+      {label}
+    </button>
+  );
+}
+```
+Here, In the function signature, we applied a **default parameter** to the `color` prop: `color = "blue"`. This ensures that if the parent component doesn't pass a `color` prop (e.g., `<Button label="Click" />`), the value won't be `undefined`; it will default to "blue".
+### Prop Validation
+To use validation, we need the `prop-types` package, we can install it using `npm install prop-types`. This package allow us to create something like as a contract: "I expect `title` to be a string, and it is required."
 ```jsx
 import PropTypes from 'prop-types';
 
@@ -27,22 +42,17 @@ Button.propTypes = {
   onClick: PropTypes.func,            // Must be a function
   color: PropTypes.string             // Must be a string (optional)
 };
-```
-Here, In the function signature, we applied a **default parameter** to the `color` prop: `color = "blue"`. This ensures that if the parent component doesn't pass a `color` prop (e.g., `<Button label="Click" />`), the value won't be `undefined`; it will default to "blue". This prevents runtime errors and guarantees a baseline visual style.
-    
-We also used the external `prop-types` library to define a clear contract for how this component should be used. We did that by attaching the static `propTypes` property to the `Button` function.
+``` 
+Here we added validation to our props, we used the external `prop-types` library to define a clear contract for how this component should be used. We did that by attaching the static `propTypes` property to the `Button` function.
 - For the `label` prop, we set `PropTypes.string.isRequired`. This tells React that **`label` must be a string**, and it is **mandatory** for the component to render correctly.
 - For `onClick`, we established that it must be a function (`PropTypes.func`).
 - For `color`, we specified it should be a string (`PropTypes.string`), but since we didn't add `.isRequired`, it remains **optional**.
+## Creating Custom Hooks
+React’s built-in hooks don’t solve every problem. Sometimes we need a specific behavior or custom functionality. To handle these cases, React allows us to create Custom Hooks.
 
-### Creating Custom Hooks
-React’s built-in hooks don’t solve every problem. Sometimes you need a specific behavior or custom functionality. To handle these cases, React allows us to create Custom Hooks.
-
-If you notice that you're repeating the same `useEffect` logic or state logic across multiple components such as fetching data, tracking window size, or checking if a user is online you are breaking the **DRY (Don’t Repeat Yourself)** principle. Instead of repeating that code, we can extract the shared logic into a separate function.
-
-A custom hook is simply a JavaScript function that **starts with the word `use`** and uses other hooks inside it. This lets us reuse logic cleanly and makes our components simpler and easier to maintain.
+A custom hook is simply a JavaScript function that starts with the word `use` and uses other hooks inside it. This lets us reuse logic cleanly and makes our components simpler and easier to maintain.
 #### Writing a Reusable `useFetch` Hook
-Let's build a hook that handles the "Loading, Success, Error" pattern we learned earlier.
+In our app, we sometimes need to use useEffect in multiple components. Copying and pasting the same useEffect can violate the DRY principle. To fix this, we can create a custom hook that handles data fetching and the ‘Loading, Success, Error’ pattern.
 ```jsx
 import { useState, useEffect } from 'react';
 
@@ -68,7 +78,6 @@ function useFetch(url) {
     fetchData();
   }, [url]); 
 
-  
   return { data, loading, error };
 }
 
@@ -93,8 +102,6 @@ function UserList() {
   );
 }
 ```
-By using the custom `useFetch` hook, the component becomes much cleaner and easier to read. Instead of handling the fetch logic, loading states, and error handling inside the component, we simply call `useFetch` and immediately receive `data`, `loading`, and `error`. This keeps the component focused on rendering the UI, while the hook manages all the fetching logic behind the scenes. It also makes the code reusable any component in the app can now fetch data with the same one-line hook call, following the DRY principle and improving overall maintainability.
-
 ## Performance Optimization and State Management
 As our React applications grow, performance and state management become critical. Poorly managed state or unnecessary re-renders can slow down even small apps. In this section, we explore strategies to optimize performance and efficiently manage state.
 ### Memoization
