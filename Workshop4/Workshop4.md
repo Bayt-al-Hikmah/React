@@ -51,7 +51,7 @@ Here we added validation to our props, we used the external `prop-types` library
 React’s built-in hooks don’t solve every problem. Sometimes we need a specific behavior or custom functionality. To handle these cases, React allows us to create Custom Hooks.
 
 A custom hook is simply a JavaScript function that starts with the word `use` and uses other hooks inside it. This lets us reuse logic cleanly and makes our components simpler and easier to maintain.
-#### Writing a Reusable `useFetch` Hook
+### Writing a Reusable `useFetch` Hook
 In our app, we sometimes need to use useEffect in multiple components. Copying and pasting the same useEffect can violate the DRY principle. To fix this, we can create a custom hook that handles data fetching and the ‘Loading, Success, Error’ pattern.
 ```jsx
 import { useState, useEffect } from 'react';
@@ -84,7 +84,7 @@ function useFetch(url) {
 export default useFetch;
 ```
 Here we create a function called `useFetch`, which serves as our custom hook for handling data fetching. Inside this function, we define three pieces of state: `data`, `loading`, and `error`. The hook uses `useEffect` to automatically run a fetch request whenever the `url` changes. Inside the effect, we define an asynchronous function that tries to fetch data from the provided URL. If the request succeeds, we store the result in `data`; if it fails, we capture the error message; and in all cases, we set `loading` to `false` when the request finishes. At the end, the hook returns an object containing `data`, `loading`, and `error`, allowing any component to use this hook and get all the necessary information for fetching data in a clean, reusable way.
-#### Using the Custom Hook
+### Using the Custom Hook
 Now, any component in our app can fetch data with a single line of code.
 ```jsx
 import useFetch from './useFetch';
@@ -102,7 +102,7 @@ function UserList() {
   );
 }
 ```
-## Performance Optimization and State Management
+## Performance Optimization
 As our React applications grow, performance and state management become critical. Poorly managed state or unnecessary re-renders can slow down even small apps. In this section, we explore strategies to optimize performance and efficiently manage state.
 ### Memoization
 In React, components re-render whenever their state or props change. But sometimes, re-renders are unnecessary and can impact performance. Memoization helps us cache values or functions to avoid redundant calculations or renders.
@@ -176,12 +176,12 @@ function App() {
 }
 ```
 In this example `React.lazy` and `Suspense` implement lazy loading. The `Profile` component is dynamically imported, meaning it is only loaded when needed, rather than at the initial app load. `Suspense` provides a fallback UI (`Loading...`) while the component is being fetched. This reduces the initial bundle size and improves performance, especially for large applications.
-### State Management
-#### Lifting State Up
+## State Management
+### Lifting State Up
 The concept of Lifting State Up is fundamental in React when two or more sibling components need to share or react to the same piece of mutable data. The solution is to move (or "lift") the shared state up to the closest common parent component.
 
 When the state is in the parent, the parent can pass the state down to one child component (e.g., to display it) and a function (a setter) to the other child component (e.g., to modify it).
-#### Sharing State Between Components
+### Sharing State Between Components
 Imagine you have a `TemperatureInput` component for Celsius and another for Fahrenheit, and changing one must update the other.
 
 1. **Define the Shared State:** The parent component (`Calculator`) defines the state (`temperature`) and the setter function (`setTemperature`).
@@ -213,7 +213,7 @@ function NameInput({ onNameChange }) {
 }
 ```
 In this small example of **Lifting State Up**, we **created a parent component (`SharedForm`)** that holds the `name` state. We then passed a handler (`handleNameChange`) down to the child component (`NameInput`) as a prop. The child updates the parent’s state whenever the input changes, allowing both components to share and reflect the same state, keeping the data synchronized.
-#### Redux Basics
+### Redux Basics
 While React has native tools like the Context API and `useReducer`, we can use Redux for managing complex global state. Redux enforces strict rules, making state changes predictable and easier to debug.  
 
 Redux follows a unidirectional data flow with three main concepts:
@@ -258,9 +258,7 @@ We created a Redux store to manage a simple counter. We define an `initialState`
 ```jsx
 
 import React from "react";
-
 import { Provider, useSelector, useDispatch } from "react-redux";
-
 import { store } from "./store";
 
 function Counter() {
@@ -290,49 +288,8 @@ export default function App() {
 ```
 Now we wrapped  the `App` component with `<Provider store={store}>` to make the Redux store available to all child components. Inside `Counter`, we use **`useSelector`** to read the current `count` from the store and **`useDispatch`** to send actions (`INCREMENT`, `DECREMENT`, `RESET`) to the store. Clicking the buttons dispatches actions, which the reducer handles to update the state, and the UI automatically reflects the latest count.
 
-### State Management
-#### Lifting State Up
-The concept of Lifting State Up is fundamental in React when two or more sibling components need to share or react to the same piece of mutable data. The solution is to move (or "lift") the shared state up to the closest common parent component.
-
-When the state is in the parent, the parent can pass the state down to one child component (e.g., to display it) and a function (a setter) to the other child component (e.g., to modify it).
-#### Sharing State Between Components
-Imagine you have a `TemperatureInput` component for Celsius and another for Fahrenheit, and changing one must update the other.
-
-1. **Define the Shared State:** The parent component (`Calculator`) defines the state (`temperature`) and the setter function (`setTemperature`).
-2. **Pass State and Handlers Down:** The parent passes the `temperature` as a prop to both children, and it passes the `setTemperature` function as a prop to the child that needs to change the state.
-
-```jsx
-// Parent Component (Lifts the state)
-function SharedForm() {
-  const [name, setName] = useState('');
-
-
-  const handleNameChange = (newName) => {
-    setName(newName);
-  };
-
-  return (
-    <div>
-      <NameInput onNameChange={handleNameChange} /> 
-      <hr />
-      <p>Current Name: **{name}**</p> 
-    </div>
-  );
-}
-
-function NameInput({ onNameChange }) {
-  return (
-    <input 
-      type="text" 
-      placeholder="Enter your name"
-      onChange={(e) => onNameChange(e.target.value)} 
-    />
-  );
-}
-```
-In this small example of **Lifting State Up**, we **created a parent component (`SharedForm`)** that holds the `name` state. We then passed a handler (`handleNameChange`) down to the child component (`NameInput`) as a prop. The child updates the parent’s state whenever the input changes, allowing both components to share and reflect the same state, keeping the data synchronized.
-
-### Higher-Order Components (HOCs)
+## Higher-Order Components And Portals
+### Higher-Order Components
 A Higher-Order Component (HOC) is a function that takes a component as input and returns a new component with extra features or enhanced behavior. HOCs were widely used for reusing component logic before Hooks existed, but they are still important to understand because many libraries and legacy codebases still rely on them.
 
 To create an HOC, we define a function that accepts a component, wraps it with additional logic, and returns a new component. We can think of it like a factory function that builds a modified version of a component by adding new capabilities while keeping the original component intact.
