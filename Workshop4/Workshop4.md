@@ -186,11 +186,9 @@ Finally, in the App component, we wrapped our Counter component with the Provide
 
 ## Higher-Order Components And Portals
 ### Higher-Order Components
-A Higher-Order Component (HOC) is a function that takes a component as input and returns a new component with extra features or enhanced behavior. HOCs were widely used for reusing component logic before Hooks existed, but they are still important to understand because many libraries and legacy codebases still rely on them.
+A Higher-Order Component (HOC) is a function that takes a component as input and returns a new component with extra features or enhanced behavior.
 
 To create an HOC, we define a function that accepts a component, wraps it with additional logic, and returns a new component. We can think of it like a factory function that builds a modified version of a component by adding new capabilities while keeping the original component intact.
-
-**Example:**
 ```jsx
 function withLogger(WrappedComponent) {
   return function EnhancedComponent(props) {
@@ -210,28 +208,18 @@ export default function App() {
 }
 ```
 Here we have three main parts:
-1. **`withLogger`**, which represents our Higher-Order Component.  
-    It takes another component as input (`WrappedComponent`) and returns a new component that logs a message every time it renders. Inside it, we return `EnhancedComponent`, which prints to the console and then renders the original component with all its props.
-    
+1. **`withLogger`**, which represents our Higher-Order Component. It takes another component as input (`WrappedComponent`) and returns a new component that logs a message every time it renders. Inside it, we return `EnhancedComponent`, which prints to the console and then renders the original component with all its props.
 2. Next, we created a simple component called **`Hello`**, which just displays “Hello World”.
 3. Finally, we used our HOC by calling `withLogger(Hello)` to create **`HelloWithLogger`**. This enhanced version of `Hello` now logs a message whenever it renders. In the `App` component, we render `HelloWithLogger` instead of the plain `Hello`.
-
 ### Portals
-Normally, React renders everything inside the root DOM element (usually `<div id="root">`).  
-However, there are situations where we need a component to visually appear somewhere else in the DOM, while still being logically part of the React component tree.
-
-This is exactly what **Portals** allow us to do, Portals let us render a React component into a completely different DOM node, without breaking React's rendering cycle or event handling. React still manages state, props, and updates normally only the final DOM position changes.  
+All the Apps that built so far render inside one root DOM element (usually `<div id="root">`). However, there are situations where we need a component to visually appear somewhere else in the DOM, while still being logically part of the React component tree. We can do that using Portals, with Portals we can render a React component into a completely different DOM node, without breaking React's rendering cycle or event handling.
 #### Working with Portals
-To work with Portals, we first need to create a separate DOM element in our HTML file where the portal will be rendered. Then, in React, we use `ReactDOM.createPortal()` to send a component’s content into that DOM node. Even though the component appears outside the main root element, React still controls it normally, making Portals perfect for modals, popups, and tooltips.
+To work with Portals, we first need to create a separate DOM element in our HTML file where the portal will be rendered.
 
-**Example**
-First we create our new DOM element where the protel will be render
 ```jsx
 <div id="modal-root"></div>
 ```
-This is an extra DOM node where the modal will be mounted.
-
-After thet we create the React logic
+Then, in React, we use `ReactDOM.createPortal()` to send a component’s content into that DOM node. Even though the component appears outside the main root element, React still controls it normally, making Portals perfect for modals, popups, and tooltips.
 ```jsx
 import ReactDOM from "react-dom";
 
@@ -253,16 +241,13 @@ export default function App() {
   );
 }
 ```
-Here we created a **Modal** component that accepts `children` as a prop. Inside this component, we use **`ReactDOM.createPortal()`** to render the children into a different part of the DOM. The `createPortal` function takes **two arguments**: the React element we want to render and the DOM node where we want to mount it (`document.getElementById("modal-root")`).
+Here we created a Modal component that accepts `children` as a prop. Inside this component, we use **`ReactDOM.createPortal()`** to render the children into a different part of the DOM. The `createPortal` function takes **two arguments**: the React element we want to render and the DOM node where we want to mount it (`document.getElementById("modal-root")`).
 
 Finally, we used the `Modal` component just like any other React component inside the `App` component. Even though the modal content appears outside the main root element, it is still fully controlled by React, allowing state, props, and events to work normally. 
-
-
 ## Performance Optimization
-As our React applications grow, performance and state management become critical. Poorly managed state or unnecessary re-renders can slow down even small apps. In this section, we explore strategies to optimize performance and efficiently manage state.
+React simplified for us building UI for our Apps but For building powerfull web Apps we need more then beautifull UI, Response time and Performance matter. In this section, we explore strategies to optimize performance.
 ### Memoization
 In React, components re-render whenever their state or props change. But sometimes, re-renders are unnecessary and can impact performance. Memoization helps us cache values or functions to avoid redundant calculations or renders.
-
 #### **`React.memo`**
 By default, when a parent component re-renders, React re-renders all its children, even if the children's props haven't changed. This is often an unnecessary performance hit.
 
