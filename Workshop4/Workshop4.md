@@ -1,7 +1,9 @@
 ## Objectives
 - Default Props and Prop Validation
 - Creating Costum Hooks
-- Performance Optimization and State Management
+- Working with Redux
+- Higher-Order Components And Portals
+- Performance Optimization
 
 ## Default Props and Prop Validation
 JavaScript is a loosely typed language. This means if we pass a number to a component that expects a string, or if we forget to pass a prop entirely, React won't stop us until the app crashes in the browser.To prevent this, we use PropTypes to define expectations for our components, and Default Parameters to ensure values exist even if they aren't passed.
@@ -102,6 +104,86 @@ function UserList() {
   );
 }
 ```
+
+## Working with Redux 
+Previously, we used ``useReducer`` to manage complex local state. However, some applications require an even more structured way to represent, control, and share state especially when passing data deeply through multiple child components. For this, React applications often rely on ``Redux``, a powerful tool for managing complex global state.
+
+Redux enforces strict, predictable rules for how state changes occur, which makes the application easier to understand, maintain, and debug. It is built around three main concepts:
+1. **Store:** The single source of truth an object that holds the entire application state.
+2. **Actions:** Plain JavaScript objects that describe **what happened**. They must have a `type` property (e.g., `{ type: 'INCREMENT' }`).
+3. **Reducers:** Pure functions that take the `currentState` and an `action`, and return the `newState`. Reducers **must not mutate the state**; they always return a new state object.
+
+### Creating the Store
+To use Redux in React, we first need to install `react-redux`, then we create the store using ``CreateStore`` hook.
+```jsx
+import { createStore } from "redux";
+
+const initialState = { count: 0 };
+
+function counterReducer(state = initialState, action) {
+  switch (action.type) {
+    case "INCREMENT":
+      return { count: state.count + 1 };
+    case "DECREMENT":
+      return { count: state.count - 1 };
+    case "RESET":
+      return { count: 0 };
+    default:
+      return state;
+  }
+}
+
+export const store = createStore(counterReducer);
+
+```
+We first created an initialState object that holds the starting value of our counter (counter = 0).
+Next, we defined the counterReducer, which is the function responsible for managing the state of our store. It takes two arguments: the current state and an action. We set the default value of state to initialState.
+
+Inside the reducer, we use a switch statement to check the action type and update the state accordingly, always returning a new state rather than modifying the existing one.
+
+Finally, we created the store using createStore, passing our reducer function as the argument so Redux knows how to manage and update the state.
+### Connecting Store with Component
+```jsx
+
+import React from "react";
+import { Provider, useSelector, useDispatch } from "react-redux";
+import { store } from "./store";
+
+function Counter() {
+
+  const count = useSelector(state => state.count);
+  const dispatch = useDispatch();
+
+  return (
+
+    <div>
+      <h2>Count: {count}</h2>
+      <button onClick={() => dispatch({ type: "DECREMENT" })}>-</button>
+      <button onClick={() => dispatch({ type: "RESET" })}>Reset</button>
+      <button onClick={() => dispatch({ type: "INCREMENT" })}>+</button>
+    </div>
+  );
+}
+
+export default function App() {
+  return (
+    <Provider store={store}>
+      <Counter />
+    </Provider>
+  );
+}
+
+```
+Now to manage and manilulate our store we created Counter, component inside it we used two key function.
+- **`useSelector`:** Extracts data from the Redux store state.
+- **`useDispatch`:** Returns the `dispatch` function, which sends an Action to the Store.
+
+Using useSelector with the helper function state => state.count, we accessed the count value from the Redux store and displayed it inside the <h1> element.
+
+On the other hand, useDispatch gives us the dispatch function, which we use to send actions that update the data in our store.
+
+Finally, in the App component, we wrapped our Counter component with the Provider and passed the store to it through the store prop. This makes the store and therefore the counter state available to the entire component tree, including the Counter component.
+
 ## Performance Optimization
 As our React applications grow, performance and state management become critical. Poorly managed state or unnecessary re-renders can slow down even small apps. In this section, we explore strategies to optimize performance and efficiently manage state.
 ### Memoization
@@ -176,118 +258,6 @@ function App() {
 }
 ```
 In this example `React.lazy` and `Suspense` implement lazy loading. The `Profile` component is dynamically imported, meaning it is only loaded when needed, rather than at the initial app load. `Suspense` provides a fallback UI (`Loading...`) while the component is being fetched. This reduces the initial bundle size and improves performance, especially for large applications.
-## State Management
-### Lifting State Up
-The concept of Lifting State Up is fundamental in React when two or more sibling components need to share or react to the same piece of mutable data. The solution is to move (or "lift") the shared state up to the closest common parent component.
-
-When the state is in the parent, the parent can pass the state down to one child component (e.g., to display it) and a function (a setter) to the other child component (e.g., to modify it).
-### Sharing State Between Components
-Imagine you have a `TemperatureInput` component for Celsius and another for Fahrenheit, and changing one must update the other.
-
-1. **Define the Shared State:** The parent component (`Calculator`) defines the state (`temperature`) and the setter function (`setTemperature`).
-2. **Pass State and Handlers Down:** The parent passes the `temperature` as a prop to both children, and it passes the `setTemperature` function as a prop to the child that needs to change the state.
-```jsx
-// Parent Component (Lifts the state)
-function SharedForm() {
-  const [name, setName] = useState('');
-  const handleNameChange = (newName) => {
-    setName(newName);
-  };
-  return (
-    <div>
-      <NameInput onNameChange={handleNameChange} />
-      <hr />
-      <p>Current Name: **{name}**</p>
-    </div>
-  );
-}
-
-function NameInput({ onNameChange }) {
-  return (
-    <input
-      type="text"
-      placeholder="Enter your name"
-      onChange={(e) => onNameChange(e.target.value)}
-    />
-  );
-}
-```
-In this small example of **Lifting State Up**, we **created a parent component (`SharedForm`)** that holds the `name` state. We then passed a handler (`handleNameChange`) down to the child component (`NameInput`) as a prop. The child updates the parent’s state whenever the input changes, allowing both components to share and reflect the same state, keeping the data synchronized.
-### Redux Basics
-While React has native tools like the Context API and `useReducer`, we can use Redux for managing complex global state. Redux enforces strict rules, making state changes predictable and easier to debug.  
-
-Redux follows a unidirectional data flow with three main concepts:
-
-1. **Store:** The single source of truth an object that holds the entire application state.
-2. **Actions:** Plain JavaScript objects that describe **what happened**. They must have a `type` property (e.g., `{ type: 'INCREMENT' }`).
-3. **Reducers:** Pure functions that take the `currentState` and an `action`, and return the `newState`. Reducers **must not mutate the state**; they always return a new state object.
-
-To use Redux in React, we install **`react-redux`**, which connects the Redux store to our components using hooks:
-
-- **`useSelector`:** Extracts data from the Redux store state.
-- **`useDispatch`:** Returns the `dispatch` function, which sends an Action to the Store.
-
-```jsx
-import { createStore } from "redux";
-// Initial state
-
-const initialState = { count: 0 };
-
-// Reducer
-function counterReducer(state = initialState, action) {
-  switch (action.type) {
-    case "INCREMENT":
-      return { count: state.count + 1 };
-    case "DECREMENT":
-      return { count: state.count - 1 };
-    case "RESET":
-      return { count: 0 };
-    default:
-      return state;
-  }
-}
-
-// Create store
-
-export const store = createStore(counterReducer);
-
-```
-
-We created a Redux store to manage a simple counter. We define an `initialState` with `count: 0` and a reducer* `counterReducer` that updates the state based on the action type (`INCREMENT`, `DECREMENT`, `RESET`). The reducer returns a new state object without mutating the original state. Finally, we create the store using `createStore(counterReducer)`, which holds the state and allows dispatching actions to update it.
-
-```jsx
-
-import React from "react";
-import { Provider, useSelector, useDispatch } from "react-redux";
-import { store } from "./store";
-
-function Counter() {
-
-  const count = useSelector(state => state.count);
-  const dispatch = useDispatch();
-
-  return (
-
-    <div>
-      <h2>Count: {count}</h2>
-      <button onClick={() => dispatch({ type: "DECREMENT" })}>-</button>
-      <button onClick={() => dispatch({ type: "RESET" })}>Reset</button>
-      <button onClick={() => dispatch({ type: "INCREMENT" })}>+</button>
-    </div>
-  );
-}
-
-export default function App() {
-  return (
-    <Provider store={store}>
-      <Counter />
-    </Provider>
-  );
-}
-
-```
-Now we wrapped  the `App` component with `<Provider store={store}>` to make the Redux store available to all child components. Inside `Counter`, we use **`useSelector`** to read the current `count` from the store and **`useDispatch`** to send actions (`INCREMENT`, `DECREMENT`, `RESET`) to the store. Clicking the buttons dispatches actions, which the reducer handles to update the state, and the UI automatically reflects the latest count.
-
 ## Higher-Order Components And Portals
 ### Higher-Order Components
 A Higher-Order Component (HOC) is a function that takes a component as input and returns a new component with extra features or enhanced behavior. HOCs were widely used for reusing component logic before Hooks existed, but they are still important to understand because many libraries and legacy codebases still rely on them.
