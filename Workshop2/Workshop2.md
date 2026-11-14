@@ -1,22 +1,263 @@
+# Workshop 2: Components, State, and User Interaction
+
+In Workshop 1, the interface was mostly a description of fixed content with one small counter. Real applications become more interesting when users can change data. A user may add a task, complete it, filter the list, or delete an item. Those actions introduce a new question: which component should know about the data, and how should the change travel through the component tree? This workshop builds a small task manager so you can learn component composition, events, forms, lists, and state transitions as parts of one feature.
+
 ## Objectives
-- Working with `useReducer`
-- Children Components
-- Rendering lists of data using `.map()`.
-- Working with Conditional Rendering.
-- Handle User Input with "Controlled Components."
 
-## Working with `useReducer`
-We used `useState` for managing data. However, when state becomes complex for example, when one action changes multiple parts of the state, or when the next state depends heavily on the previous one `useState` can get messy.   
-`useReducer` is an alternative hook. It is based on the idea that instead of telling React what to change directly, we send an Action, and a central function (the Reducer) decides how to update the state.
-### The Three Parts of a Reducer
-1. **State:** The current data.
-2. **Dispatch:** A function used to send commands (Actions).
-3. **Reducer:** A function that takes the current state and an action, and returns the new state.
+- Design components with clear responsibilities and typed props.
+- Compose components using `children` and reusable layout components.
+- Render lists with stable keys and display conditional UI.
+- Handle user events and build accessible forms.
+- Understand when to use `useState` and when a reducer is clearer.
+- Build a small task manager using TypeScript and React.
 
-```jsx
+## Component Composition
+
+A component should represent one understandable piece of the interface. It may be a small control, a card, a form, a navigation area, or a full page. Avoid both extremes: one component that contains the entire application, and dozens of tiny components that have no meaningful responsibility.
+
+A typical hierarchy might look like this:
+
+Imagine that the task page needs to show a form and a list. The form must know how to collect the title of a new task, while the list must know how to display existing tasks. Neither component needs to own the entire page. The page can coordinate them: it stores the task collection, passes the current tasks to the list, and passes a function to the form that explains how a new task should be added. This division keeps each child focused while leaving shared decisions in the parent that has the full context.
+
+```text
+App
+└── TaskPage
+    ├── PageHeader
+    ├── TaskForm
+    ├── TaskFilters
+    └── TaskList
+        └── TaskItem (one per task)
+```
+
+The parent assembles the screen and owns the state that multiple children need. Children receive data and callback props.
+### Passing `children`
+
+React provides a special prop called `children`. It contains whatever JSX is placed between a component's opening and closing tags. This is useful for cards, dialogs, page shells, and other components that provide a reusable container.
+
+```tsx
+import type { ReactNode } from 'react';
+
+type PanelProps = {
+  title: string;
+  children: ReactNode;
+};
+
+function Panel({ title, children }: PanelProps) {
+  return (
+    <section className="panel">
+      <h2>{title}</h2>
+      <div className="panel__content">{children}</div>
+    </section>
+  );
+}
+
+function App() {
+  return (
+    <Panel title="Account summary">
+      <p>Your account is active.</p>
+      <button type="button">View account</button>
+    </Panel>
+  );
+}
+```
+
+`ReactNode` is a useful type for content that React can render. Import it with `import type` because it is needed only for TypeScript checking, not as a runtime value.
+
+This pattern is called composition. Instead of making `Panel` understand every possible kind of content, we let the parent place the desired content between its tags. The panel owns the frame its border, title, padding, and semantic section while the calling component decides what belongs inside. Composition is often more flexible than adding a long list of props such as `showButton`, `showImage`, `showWarning`, and `showFooter` to one generic component.
+
+## Events and State Updates
+
+An event is the moment when the user interacts with the interface. The click is not itself the business rule: clicking a button might add a task, mark a product inactive, or open a dialog. React lets us connect an event to a named handler so the UI markup stays readable and the behavior can be understood separately. Naming handlers according to the action they perform `handleSave`, `handleDelete`, or `handleFilterChange` makes the intent easier to follow than placing complicated expressions directly inside JSX.
+
+React event props use camelCase names such as `onClick`, `onChange`, and `onSubmit`. Pass a function, not the result of calling a function during render.
+
+```tsx
+function SaveButton() {
+  function handleSave() {
+    console.log('Saved');
+  }
+
+  return <button onClick={handleSave}>Save</button>;
+}
+```
+When the next value depends on the previous state, use an updater function:
+
+```tsx
+setCount((currentCount) => currentCount + 1);
+```
+Do not mutate objects or arrays stored in state. Create a new object or array:
+
+Immutability is important because React state is not an ordinary mutable scratch variable. React uses the identity of values to reason about updates, and other parts of the application may rely on the previous state remaining unchanged. If you change an existing array with `push`, you alter the same object that the previous render referenced. Creating a new array with spread, `map`, or `filter` makes the transition explicit: the old value remains intact, and the next render receives a new value. This also makes reducers and tests easier to reason about because the input state is not secretly modified.
+
+```tsx
+// Avoid mutating the existing array
+// tasks.push(newTask);
+
+setTasks((currentTasks) => [...currentTasks, newTask]);
+```
+
+## Rendering Lists
+
+A list in React is usually the result of transforming data into elements. The array remains the data model; `map` produces a corresponding array of JSX elements. This separation is useful because you can sort, filter, or transform the data before deciding how each item should look. In a real task manager, the task objects may contain IDs, titles, descriptions, status, and creation dates, while the JSX decides which of those fields should be visible in a row.
+
+Real applications display arrays of data: products, users, messages, lessons, tasks, or notifications. Use JavaScript to transform the data into JSX.
+
+```tsx
+type Student = {
+  id: number;
+  name: string;
+};
+
+const students: Student[] = [
+  { id: 1, name: 'Maya' },
+  { id: 2, name: 'Omar' },
+  { id: 3, name: 'Lina' },
+];
+
+function StudentList() {
+  return (
+    <ul>
+      {students.map((student) => (
+        <li key={student.id}>{student.name}</li>
+      ))}
+    </ul>
+  );
+}
+```
+
+### Why Does React Need `key`?
+
+A key gives React a stable identity for each item in a rendered list. When an item is inserted, removed, or reordered, keys help React match the rendered elements to the underlying data.
+
+Use a stable identifier from the data, such as `task.id`. Avoid using the array index when the list can change order or have items inserted or deleted. Do not use `useId` for list keys; it is intended for generating IDs that connect accessible elements such as labels and form controls.
+
+The reason becomes clear when the user changes a list. Suppose the first row is deleted. If keys are array positions, the item that used to be second now occupies the first position, and React may associate the existing rendered row with a different task. This can lead to confusing behavior, especially when rows contain input fields or local component state. A stable data ID tells React that a particular row represents the same task even when its position changes. A key is therefore an identity for reconciliation, not merely a warning-suppressing attribute.
+
+## Conditional Rendering
+
+Conditional rendering is how a component describes the different states of a feature. It is tempting to think only about the normal state where data exists, but users also encounter a list before the first item is created, a search with no matching results, a request that is still loading, or an operation that failed. These are different situations and deserve different messages. A good interface helps users understand whether they should wait, change their search, retry, or create the first item.
+
+A component often displays different content depending on application state. Common options include:
+
+**Ternary operator:** Use when there are two alternate results.
+
+```tsx
+return isSignedIn
+  ? <p>Welcome back.</p>
+  : <button onClick={openLogin}>Sign in</button>;
+```
+
+**Logical AND (`&&`):** Use when content should appear only when a condition is true.
+
+```tsx
+{unreadCount > 0 && <p>You have {unreadCount} unread messages.</p>}
+```
+
+Be careful with numeric conditions. `{count && <p>...</p>}` can render `0` when count is zero. Prefer `{count > 0 && ...}`.
+
+**Early return:** Useful for loading, error, and empty states.
+
+```tsx
+if (isLoading) return <p role="status">Loading tasks...</p>;
+if (error) return <p role="alert">{error}</p>;
+if (tasks.length === 0) return <p>No tasks yet.</p>;
+
+return <TaskList tasks={tasks} />;
+```
+
+A professional interface deliberately handles loading, empty, error, success, and disabled states. Do not design only the happy path.
+
+Be precise about what is empty. “No tasks have been created yet” is different from “No tasks match this filter.” The first suggests that the user should create a task; the second suggests that the filter should be adjusted. This small wording difference comes from understanding the state that produced the screen.
+
+## Forms and User Input
+
+Forms are one of the most important boundaries between the user and the application's data. They collect values, but they also communicate what information is expected, explain invalid input, and provide a clear way to submit or cancel an operation. A form is not complete just because it has an input and a button. It should have labels, appropriate input types, validation, a submission path, and feedback about what happened.
+
+Forms allow users to create, update, and submit data. In a controlled React input, React state is the source of truth for the input's value.
+
+```tsx
+import { useState } from 'react';
+
+function SearchForm() {
+  const [query, setQuery] = useState('');
+
+  return (
+    <form onSubmit={(event) => event.preventDefault()}>
+      <label htmlFor="search">Search</label>
+      <input
+        id="search"
+        name="search"
+        value={query}
+        onChange={(event) => setQuery(event.target.value)}
+      />
+      <button type="submit">Search</button>
+    </form>
+  );
+}
+```
+
+The input's `value` comes from state. The `onChange` handler updates that state as the user types. TypeScript can usually infer the event type from the JSX attribute. For a separately declared handler, type it explicitly:
+
+This is called a controlled input because React state controls the value shown by the field. When the user types, the browser emits an input event, the handler reads the new value, and the state setter schedules a render with that value. The input then receives the updated `value` prop. This creates one clear source of truth and makes it possible to validate, format, or submit the value using ordinary component logic. It is also why a controlled field should not be given a changing `value` without an `onChange` handler: the user would be unable to change the value that React keeps supplying.
+
+```tsx
+import type { ChangeEvent, FormEvent } from 'react';
+
+function ExampleForm() {
+  const [email, setEmail] = useState('');
+
+  function handleEmailChange(event: ChangeEvent<HTMLInputElement>) {
+    setEmail(event.currentTarget.value);
+  }
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    console.log({ email });
+  }
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <label htmlFor="email">Email address</label>
+      <input id="email" type="email" value={email} onChange={handleEmailChange} required />
+      <button type="submit">Continue</button>
+    </form>
+  );
+}
+```
+
+### Form Validation
+Validation has two responsibilities. First, it should help the user correct mistakes by explaining what is wrong and where. Second, the server must independently enforce the rules before accepting the submitted data. A browser can be bypassed or modified, so client validation improves the experience but cannot protect the database or business rules. For example, a store interface may prevent a negative quantity in the form, but the backend must still reject an invalid stock adjustment.
+
+To validate your forms you can start with the browser's built-in validation when it meets the requirement: `required`, `minLength`, `maxLength`, `type="email"`, `min`, and `max`. Add clear error messages and associate them with the relevant input. 
+
+For complex forms, libraries can reduce repetitive work:
+
+- **React Hook Form** provides a form state and registration model.
+- **Zod** can describe and validate data schemas at runtime and infer TypeScript types.
+
+Do not add a form library to a one-field exercise. Learn controlled inputs first, then choose a library when the form complexity justifies it.
+
+## Choosing Between `useState` and `useReducer`
+
+As a feature grows, the state update logic can become as important as the state value itself. A counter with one number is easy to manage with `useState`. A task manager has a list and several related operations: add, toggle, delete, perhaps edit or clear completed items. A reducer makes those operations visible as named transitions. It gives the team one place to inspect what each action is allowed to do.
+
+`useState` is a good default for independent values and straightforward updates. `useReducer` can make complex state transitions easier to understand when several actions update the same state structure.
+
+A reducer receives the current state and an action, then returns the next state. It must be pure: it should not make network requests, modify the DOM, or mutate the current state.
+
+```tsx
 import { useReducer } from 'react';
 
-function counterReducer(state, action) {
+type CounterState = {
+  count: number;
+};
+
+type CounterAction =
+  | { type: 'increment' }
+  | { type: 'decrement' }
+  | { type: 'reset' };
+
+function counterReducer(state: CounterState, action: CounterAction): CounterState {
   switch (action.type) {
     case 'increment':
       return { count: state.count + 1 };
@@ -24,19 +265,15 @@ function counterReducer(state, action) {
       return { count: state.count - 1 };
     case 'reset':
       return { count: 0 };
-    default:
-      return state; // Do nothing if action is unknown
   }
 }
 
-function Counter() {
-  // 2. Initializing the hook
+function ReducerCounter() {
   const [state, dispatch] = useReducer(counterReducer, { count: 0 });
 
   return (
     <div>
-      Count: {state.count}
-      {/* 3. Dispatching Actions */}
+      <p>Count: {state.count}</p>
       <button onClick={() => dispatch({ type: 'decrement' })}>-</button>
       <button onClick={() => dispatch({ type: 'reset' })}>Reset</button>
       <button onClick={() => dispatch({ type: 'increment' })}>+</button>
@@ -44,389 +281,84 @@ function Counter() {
   );
 }
 ```
-Here we created reducer function `counterReducer`. This function receives two parameters: the current state and an action object. Based on the action’s `type`, the reducer returns a new state.
 
-After defining the reducer, we build the `Counter` component, it use the `useReducer` hook to manage its internal state, this hook take tow argument. The first one is the reducer function we created that manage the state, and the second is the initial state here, an object with `count: 0`.
+`dispatch` sends an action to the reducer. The action type is a discriminated union, so TypeScript checks that each action has the correct shape.
 
-The `useReducer` returns an array containing two items: the current `state` and the `dispatch` function. This function is what we use to send actions to that reducer. When we call `dispatch({ type: 'increment' })`, React passes both the current state and that action to `counterReducer`. The reducer computes the new state and React updates the component accordingly.
+It is helpful to read a reducer as a small state-transition table. The current state is the input; the action explains what happened; the returned state is the result. An action such as `{ type: 'task/deleted', payload: taskId }` describes an intention rather than giving the reducer a set of arbitrary instructions. The reducer remains pure because it only calculates the next state. Network requests, alerts, and DOM operations belong elsewhere. This predictability makes reducers straightforward to test without rendering a component.
 
-Finally,  we display the current count and add three buttons. Each button dispatches a different action decrement, reset, or increment.
-## Children Components 
-Building a UI often requires nesting components, much like elements nest in plain HTML. In React, this is achieved using a special built-in prop called ``children``, which represents whatever is placed between a component’s opening and closing tags. This allows us to create components that act as containers or layouts focus on providing structure or styling while leaving the actual content up to the developer.
-The `children` prop solves this by letting us inject arbitrary UI into another component.
-### Creating a Component That Uses `children`
-There is two ways to make React component accept the children we can use props then access children by using `props.children` or we can use ``{ children }`` destructor as parametre for the component.
-```jsx
-import { Children } from 'react';
+Do not choose `useReducer` simply because it looks more advanced. The decision is about the shape of the update logic. Use `useState` when a value has a few straightforward updates. Consider a reducer when related actions update the same state structure and a single transition function makes the behavior easier to understand.
 
-// Method 1
-function Card({ children }) {
-  return <div className="card">{children}</div>;
-}
-// Method 2
-function Card_2(props) {
-  return <div className="card">{props.children}</div>;
-}
+## Build a Task Manager
+The task manager brings the earlier ideas together. The form is responsible for collecting a new task; the page or feature component owns the task collection; the reducer defines allowed changes; and the list turns the current collection into rows. The user never needs to know that a reducer exists. They see a familiar interaction: enter a task, submit it, see it appear, and change its status. Our job as developers is to choose a structure that keeps that interaction correct as more requirements are added.
+
+The example in `Workshop2/Example/todo-list` is a small task manager. It uses a reducer because actions such as adding, toggling, and deleting tasks all update the same list.
+
+Each task has a stable identifier:
+
+```tsx
+type Task = {
+  id: string;
+  title: string;
+  description: string;
+  completed: boolean;
+};
+
+type TaskAction =
+  | { type: 'task/added'; payload: Task }
+  | { type: 'task/toggled'; payload: string }
+  | { type: 'task/deleted'; payload: string };
 ```
-Here, the `Card` component doesn’t know or care what content it will display. Its only job is to wrap the children with a styled `<div>`.
-### Passing Children to a Component
-To pass children, we simply write JSX between the component’s opening and closing tags. React automatically collects that JSX and hands it to the component as the `children` prop.
-```jsx
-function App() {
-  return (
-    <Card>
-      <h2>Hello</h2>
-      <p>This content is passed as children.</p>
-    </Card>
-  );
-}
-```
-Everything inside `<Card> ... </Card>` becomes the value of `children` when `Card` renders.
-## Rendering Lists in React
-In Workshop 1, we displayed a single piece of data (a counter). However, real-world applications usually deal with lists: a feed of tweets, a gallery of products, or a menu of options. In React, we don't repeat code manually or copy past for every item; we use JavaScript to generate the HTML for us.
-### `For` Loops in JSX
-In standard JavaScript, if we want to loop through an array, we often use a `for` loop. However, JSX is "syntactic sugar" for function calls. We cannot put a statement (like `for` or `if`) inside the curly braces `{}` of JSX. We can only put expressions, things that produce a value.    
-Therefore, in React, the standard way to render a list is using the JavaScript array method `.map()`.
-### Working with `.map()`
-The `.map()` function takes an array of raw data and "transforms" it into an array of JSX elements.
-```jsx
-const fruits = ["Apple", "Banana", "Orange"];
 
-return (
-  <ul>
-    {fruits.map((fruit) => (
-      <li>{fruit}</li>
-    ))}
-  </ul>
-);
-```
-In this code we used the map function to loop over the fruits arrays and return array of `<li>` elements , React will recive them and render them to the screen, The code work, but it will print a warning in the console:
-```
-Warning: Each child in a list should have a unique "key" prop.
-```
-It drop this warning because React needs a way to identify each item in the list uniquely. We fix that by adding a special `key` prop to the element we return inside the map. This key props help us later to target the items of the list   
-To use it we just loop over the collection of data and render `<li>` element with additional attribute called ``key`` have the unique id of the item as value.
-```jsx
-const users = [
-  { id: 1, name: "Alice" },
-  { id: 2, name: "Bob" },
-  { id: 3, name: "Charlie" }
-];
+A reducer might handle those actions as follows:
 
-return (
-  <ul>
-    {users.map((user) => (
-      <li key={user.id}>{user.name}</li>
-    ))}
-  </ul>
-);
-```
-## Conditional Rendering
-Looping over the Elements isn't the only thing we can do in React. Often, we want to display different things depending on the state of our application. For example, showing a "Login" button if the user is logged out, or a "Welcome" message if they are logged in. Since the `if/else` is statement we can't use them inside JSX, Javascript offer us two other patterns to deal with conditional rendring.
-### The Ternary Operator (`? :`)
-This is a shortcut for an `if...else` statement. It is useful when we want to switch between two different UI elements.    
-
-**Syntax:** `condition ? (show this if true) : (show this if false)`
-```jsx
-return (
-  <div>
-    {isLoggedIn ? <h1>Welcome back!</h1> : <button>Please Sign In</button>}
-  </div>
-);
-```
-Here is `isLoggedIn` is true we will get `<h1>Welcome back!</h1>`, if it false we will get `<button>Please Sign In</button>` inside our div
-### The Logical AND (`&&`)
-The second pattern for conditional patter is using `&&`, this pattern useful when we want to render something if a condition is true, but render nothing if it is false.
-```jsx
-return (
-  <div>
-    <h1>My Inbox</h1>
-    {unreadMessages > 0 && <p>You have new messages!</p>}
-  </div>
-);
-```
-In this example:
-- If `unreadMessages > 0` is **true**, React renders the paragraph.
-- If it is **false**, React ignores the line entirely and renders nothing.
-## Forms and User Input
-For more interactive applications, we need to handle user inputs using forms. However, handling forms in React is different from standard HTML.  
-In HTML, an `<input>` tag maintains its own internal state; when you type, the browser updates the input automatically. React, on the other hand, uses **State** to handle this.   
-We start by setting the input's value to a state variable. However, this creates a problem: the input becomes 'frozen.' The value will remain locked to the state variable, so typing will have no effect. To fix this, we must add an `onChange` event handler to update the state whenever the user types.
-### Event Handels
-The `onChange` prop is an event handler that executes every time there is a change in the input element. We use it to update the state whenever the user types. To do this, we pass it a function that sets the state variable to the current value of the input field.
-```jsx
-function Form() {
-  const [text, setText] = useState("");
-
-  return (
-    <input 
-      type="text" 
-      value={text} 
-      onChange={(e) => setText(e.target.value)} 
-    />
-  );
-}
-```
-When the user types, the `onChange` listener detects the event immediately. Inside our function, we access the `event.target` which represents the input element to retrieve the value the user just typed.   
-We then use `setText` to update our state. Once the state changes, React triggers a re-render, updating the input field to match the new text we just stored.
-### Form Validation
-Form need validation, and creating the validation like checking email format, password length difficult, can be complex,Better and more the industry standard is to use a library like React Hook Form. It uses uncontrolled components (refs) to manage form data efficiently without re-rendering the component on every letter typed.
-#### Setting the Validation
-To use this, First we install the library: `npm install react-hook-form`.
-```jsx
-import { useForm } from "react-hook-form";
-
-function SignupForm() {
-  const { 
-    register, 
-    handleSubmit, 
-    formState: { errors } 
-  } = useForm();
-
-  const onSubmit = (data) => {
-    console.log("Form Submitted:", data);
-  };
-
-  return (
-    <form onSubmit={handleSubmit(onSubmit)}>
-      <div>
-        <label>Username</label>
-        
-        <input 
-          {...register("username", { required: "Username is required" })} 
-        />
-        {errors.username && <p className="error">{errors.username.message}</p>}
-      </div>
-      
-      <div>
-        <label>Email</label>
-        <input 
-          {...register("email", { 
-            required: "Email is required", 
-            pattern: {
-              value: /^\S+@\S+$/i,
-              message: "Invalid email format"
-            }
-          })} 
-        />
-        {errors.email && <p className="error">{errors.email.message}</p>}
-      </div>
-
-      <button type="submit">Sign Up</button>
-    </form>
-  );
-}
-```
-Here, we create a simple signup form with validation. We imported the ``useForm`` hook, and when using this hook, it returns three main things we need:
-- **`register`**  connects each input to the form and lets us add validation rules
-- **`handleSubmit`** runs validation before calling our submit function
-- **`errors`** stores error messages when a field fails validation
-    
-After executing the hook, we created the ``onSubmit`` function. This will run only when the form is submitted and all inputs pass validation.
-
-Finally, we built the form itself. Each input is connected to the form using the `register()` function, which takes **two arguments**: the field name and an object defining the validation rules.
-- For the username, we set it as **required**.
-- For the email, we added both a **required rule** and a **pattern rule** to ensure the value matches a valid email format.
-
-If an input does not meet its validation rule, React Hook Form adds an entry to `errors`. We check for that using `errors.fieldName`, and if it exists, we display the error message under the input.
-## Building To-Do List App
-### Introduction
-Let's put what we have learned into practice and build a To-Do List App. Users will have the ability to add, and remove tasks.
-### App Logic
-So, what do we need to build? First, we need an Form with input field to for the task Title and textarea for Task Description, plus a button to submit the data.     
-
-Second, inside the task list, every task needs a Delete button to remove tasks from the application.
-### Creating the Components
-Now lets create the components that we need
-#### Reducer Function
-First Lets Create reducer function to manage the task list
-```
-function reducer(state,action){
-  switch(action.type){
-    case 'ADD_TASK':
-      return [...state,action.payload];
-    case 'DELETE_TASK':
-      return state.filter((task)=>task.title!==action.payload);
-    default:
-      return state;
+```tsx
+function taskReducer(state: Task[], action: TaskAction): Task[] {
+  switch (action.type) {
+    case 'task/added':
+      return [...state, action.payload];
+    case 'task/toggled':
+      return state.map((task) =>
+        task.id === action.payload
+          ? { ...task, completed: !task.completed }
+          : task,
+      );
+    case 'task/deleted':
+      return state.filter((task) => task.id !== action.payload);
   }
 }
 ```
-This reducer handles two main operations:
-- Adding a task: It returns a new array by spreading the existing state and appending the new task from the action’s payload.
-- Deleting a task: It filters the task list and removes the task whose title matches the one provided in the payload.
-#### Form
-Next, we create a Form component to capture new task data. It renders an ``<input>`` for the task title and a ``<textarea>`` for the task description. When the form is submitted, it constructs a new task object and dispatches an ``ADD_TASK`` action.
-```jsx
-function Form({setTasks}){
-    const [title,setTitle] = useState("");
-    const [description,setDescription] = useState("");
-    return(
-    <form>
-    <label> Title:
-    <input value={title} onChange={(e)=>{setTitle(e.target.value)}} />
-    </label>
 
-    <label>Description:
-    <textarea value={description} onChange={(e)=>{setDescription(e.target.value)}}>
-    </textarea>
-    </label>
-    
-    <button  class = "green" onClick={
-      (e)=>{
-        e.preventDefault();
-        const newTask = {"title":title,"description":description}
-        setTasks({type:"ADD_TASK",payload:newTask})
-        setTitle("")
-        setDescription("")
-        }
-    
-    }>Add Task</button>
-    </form>
-    )
-}
-```
-The Form component collects a task’s title and description using controlled inputs managed by ``useState``. When the user clicks Add Task, the component prevents the default form submission, creates a new task object, and dispatches an ``ADD_TASK`` action through setTasks. After adding the task, it clears both input fields to reset the form.
-#### Tasks
-Now, let's create the components responsible for displaying our tasks. We need two components one represent a single task and the other represent the tasks list.
-```jsx
-function Task({title,description,setTasks}){
-  return (
-    <div key={title}>
-    <h3>{title}</h3>
-    <p>{description}</p>
-    <button onClick={()=>{
-          setTasks({type:"DELETE_TASK",payload:title})
-        }}>Delete Task</button>
-    </div>)
+Notice that `map` and `filter` return new arrays. The reducer never changes the original list or task objects.
 
-}
-```
-The Task component is responsible for displaying a single task. It shows the task’s title and description, and includes a Delete Task button. When clicked, it dispatches a ``DELETE_TASK`` action using the task’s title as the payload, allowing the reducer to remove that task from the list.
-```jsx
-function Tasks({tasks,setTasks}){
-    return (
-    <div>
-    {  
-    tasks.map((task,index)=>
-     <Task 
-      setTasks={setTasks}
-      key={index} 
-      title={task.title}
-      description={task.description} /> 
-    )
-    }
-    </div>
-    )  
-}
-```
-The Tasks component renders the entire task list by mapping over the tasks array. For each task, it creates a Task component and passes down the title, description, and the setTasks dispatcher. This component acts as a container that displays all tasks on the screen.
+Follow one action from beginning to end. A user submits the form. The form validates the title and calls the callback it received from its parent. The parent creates an ID and dispatches a `task/added` action. The reducer returns a new task array containing the new task. React renders the page again with that new array, and the list now includes an additional row. Seeing this entire chain is more valuable than memorizing the syntax of `dispatch`: it shows how event handling, component communication, state ownership, and rendering fit together.
 
-#### The Todo
-Before finalizing our application, we'll create a central component to act as the main container, utilizing the built-in children prop to accept and render all nested content.
-```jsx
-function Todo({children}){
-  return (
-    <div className="Todo">
-      <h1>Todo List</h1>
-      {children}
-     </div>
+## Workshop Challenge: Extend the Task Manager
 
-    )
-}
-```
-The Todo component serves as a container for the entire app. It displays a main heading and uses the children prop to render whatever content is passed inside it. This makes the component flexible, allowing us to wrap the form, task list, or any other UI elements inside the same layout.
-#### The App
-Finally, we bring everything together in our main `App` component. This serves as the "Parent" that manages the data for the entire application.
-```jsx
-function App() {
-  const [tasks,setTasks] = useReducer(reducer,[]);
-  return (
-      <Todo >
-      <Form tasks={tasks} setTasks={setTasks} />
-      <Tasks tasks={tasks} setTasks={setTasks}/>
-      </Todo>
-  );
-}
-```
-In the App component, we use ``useReducer`` with the previously defined reducer to manage the task list state. The tasks state holds the current tasks, and ``setTasks`` is used to dispatch actions like adding or deleting tasks. We wrap the Form and Tasks components inside the Todo container. By passing them as children to Todo, the container can render them within its layout while keeping the structure separate from the content. Additionally, we pass tasks and setTasks as props to the child components so they can access and modify the task list for example, using the add and delete functionality.
-#### Adding Styles
-To make the list look clean and modern, replace the content of `App.css` with the following:
-```css
-.Todo {
-  max-width: 500px;
-  margin: 50px auto;
-  padding: 20px;
-  font-family: 'Arial', sans-serif;
-  background-color: #f9f9f9;
-  border-radius: 10px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-}
+Starting from `Workshop2/Example/todo-list`:
 
-h1 {
-  text-align: center;
-  color: #333;
+1. Add a priority field with the union type `'low' | 'medium' | 'high'`.
+2. Add filters for all, active, and completed tasks.
+3. Show a useful empty state when the filter has no matching tasks.
+4. Add form validation for the task title.
+5. Make the complete task row usable with a keyboard; keep the delete action as a real button.
+6. Display a summary such as “3 tasks remaining”.
+7. Add a stable ID to every task and use it as the list key.
 
-}
+## Professional Recap
 
-form {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-bottom: 20px;
-}
+- Components communicate through props and callback functions.
+- `children` is typed as `ReactNode` when a component accepts arbitrary renderable content.
+- Use stable data IDs as keys; array indexes are not reliable identities for changing lists.
+- Keep state immutable. Use functional state updates when the next value depends on the previous one.
+- Use `useState` for simple state and `useReducer` for more involved state transitions.
+- Controlled inputs synchronize their displayed value with React state.
+- Browser validation improves usability, but the server must validate submitted data too.
+- Design loading, error, empty, success, and disabled states—not only the successful result.
 
-input, textarea {
-  display:block;
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  font-size: 16px;
-  width:80%;
+### Self-Check
 
-}
+Can you explain why a list needs stable keys? Can you pass a callback from a parent to a child? Can you write a reducer with a discriminated union? Can you build and validate a form without querying the DOM manually? If not, revisit the matching section before continuing.
 
-button {
-  cursor: pointer;
-  padding: 10px 15px;
-  border: none;
-  border-radius: 5px;
-  font-weight: bold;
-  color: white;
-  transition: background 0.2s;
-  background-color: #dc3545; 
-  width: 100%;
-}
+## How This Leads to Workshop 3
 
-button.green {
-  background-color: #28a745;
-}
-
-button.green:hover {
-  background-color: #218838;
-}
-
-div  div {
-  background: white;
-  border: 1px solid #ddd;
-  padding: 15px;
-  margin-bottom: 10px;
-  border-radius: 8px;
-  position: relative; 
-}
-  
-div h3 {
-  margin: 0 0 5px 0;
-  color: #444;
-}
-
-div p {
-  margin: 0 0 15px 0;
-  color: #666;
-}
- 
-button:hover {
-  background-color: #c82333;
-
-}
-```
+The task manager currently works with data held in the browser. That is enough to understand interaction, but a real application usually receives its records from somewhere else and may need to preserve user preferences. In the next workshop, the same ideas of state and rendering will be applied to asynchronous requests, timers, browser storage, and other systems that React does not control directly.

@@ -1,639 +1,353 @@
+# Workshop 3: Effects, APIs, and Browser Features
+
+So far, the application has been able to describe and update information that already exists in browser memory. Most useful products also communicate with systems outside React: an API provides records, the browser stores preferences, and timers or subscriptions report changes over time. This workshop is about crossing that boundary responsibly. We will keep the same central question throughout: when something outside the component changes or needs to be contacted, how do we synchronize it without creating duplicate work, stale results, or memory leaks?
+
 ## Objectives
-- Managing side effects with `useEffect`.
-- Implementing Client-Side Routing with React Router.
-- Managing global state with Context API.
-- Accessing the DOM directly using `useRef`.
-## Managing Side Effects 
-In the previous workshops, our components were relatively simple: they rendered UI based on props and state. However, real applications need to interact with the "outside world." They need to fetch data, change the document title, or set up subscriptions. These are called Side Effects.
-### The `useEffect` Hook
-The `useEffect` hook lets us perform side effects in function components. We can think of it as a way to say: "Run this code after React updates the DOM."
-```jsx
+
+- Understand the purpose of `useEffect` and its dependency array.
+- Fetch data from an API and represent loading, success, empty, and error states.
+- Clean up asynchronous work when a component changes or unmounts.
+- Understand when an Effect is unnecessary.
+- Use `useRef` for DOM access and values that should not trigger a render.
+- Create reusable custom Hooks.
+
+## What Is an Effect?
+
+A React component should be predictable: given its props and state, it describes the UI. Some tasks must synchronize the component with something outside React. Examples include:
+
+- Subscribing to an event source or WebSocket.
+- Starting and clearing a timer.
+- Connecting to a third-party non-React widget.
+- Fetching data in response to a component being displayed or a relevant input changing.
+- Synchronizing with browser APIs such as `document.title`.
+
+`useEffect` is the Hook for synchronizing a component with an external system. It is not a general-purpose place to put every piece of logic that happens after rendering.
+
+The word “synchronize” is important. The component describes what should be on screen, but it may also need to start a timer, subscribe to an external event, set the browser tab title, or request data. Those operations are not part of calculating JSX. An Effect connects the committed React interface to that external system. If there is no external system to synchronize with, an Effect may not be needed at all.
+
+## The `useEffect` Hook
+
+```tsx
 import { useEffect, useState } from 'react';
 
-function Timer() {
-  const [count, setCount] = useState(0);
+function PageTitle({ title }: { title: string }) {
+  useEffect(() => {
+    document.title = title;
+  }, [title]);
+
+  return <h1>{title}</h1>;
+}
+```
+
+The Effect runs after React commits the UI. Its dependency array tells React which reactive values the Effect reads:
+
+- No dependency array: runs after every commit.
+- `[]`: runs after the component mounts; development Strict Mode can run an additional setup/cleanup cycle to detect problems.
+- `[value]`: runs after the initial mount and again when `value` changes.
+
+The dependency list is not a scheduling preference. It must include the reactive values used by the Effect. If changing the dependency list seems to create a loop, inspect the data flow instead of suppressing the dependency warning.
+
+A helpful mental model is to read an Effect as a small synchronization process: when the component commits with a particular set of reactive values, establish the external relationship that corresponds to those values. If one of the values changes, clean up the old relationship and establish the new one. The dependency array describes which values define that relationship. It is not a switch for choosing how often you would like the code to run.
+
+In development, Strict Mode may run an extra setup-and-cleanup cycle to expose Effects that are not safe to repeat. A correct Effect should tolerate that cycle. For example, a timer should be cleared before another is created; a subscription should be removed before another is registered. Do not remove Strict Mode merely to hide duplicate logs. Use the behavior as a signal to examine whether setup and cleanup are correctly paired.
+
+### Cleanup
+
+An Effect may return a cleanup function. React runs cleanup before setting up the Effect again with changed dependencies and when the component is removed.
+
+```tsx
+import { useEffect, useState } from 'react';
+
+function Clock() {
+  const [time, setTime] = useState(() => new Date());
 
   useEffect(() => {
-    document.title = `Count: ${count}`;
-  }, [count]);
+    const timerId = window.setInterval(() => {
+      setTime(new Date());
+    }, 1000);
 
-  return <button onClick={() => setCount(count + 1)}>Click me</button>;
+    return () => window.clearInterval(timerId);
+  }, []);
+
+  return <time>{time.toLocaleTimeString()}</time>;
 }
 ```
-Here we used a Side Effects, to update the browser tab's title every time the `count` value changes. The `useEffect` hook takes two arguments: the **function** we want to execute, and a dependency array. This array tells React exactly when to run the effect.
-- **`[count]`**: Runs the effect only when the `count` variable changes.
-- **`[]`** (Empty array): Runs the effect only once (when the component mounts). This is perfect for initial API calls.
-- **No array**: Runs the effect after **every single render**. (Be careful: this can cause performance issues or infinite loops).
 
-### Data Fetching
-Side Effects shine when it come to getting data from external servers. Because retrieving this data takes time (it is asynchronous), we cannot simply assign it to a variable and display it immediately. to solve  that we combine useEffect to trigger the request with useState to save the result.
+Without cleanup, the interval could continue running after the component is removed or more than one timer could remain active.
 
-When working with external data, we generally need to manage three distinct states of the UI:
-- Loading: The request has been sent, but the data hasn't arrived yet. We show a spinner or text.
-- Success: The data has arrived successfully. We display the content.
-- Error: The request failed (e.g., 404 or server down). We show an error message.à
+Cleanup is not only for unmounting. When a dependency changes, React first runs the cleanup from the previous setup and then runs the Effect with the new values. That matters for subscriptions and requests that depend on a selected user, search query, or route parameter. Without cleanup, the component could keep listening to the old source or allow an old request to update the screen after the user has moved on.
 
-```jsx
-function UserList() {
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
+## When You Do Not Need an Effect
+
+Do not use an Effect to calculate a value that can be calculated during render:
+
+```tsx
+// Prefer deriving the value during render
+const completedCount = tasks.filter((task) => task.completed).length;
+const remainingCount = tasks.length - completedCount;
+```
+
+Do not store duplicated derived values in state if they can be calculated from existing props or state. Duplicated state can become inconsistent.
+
+Do not use an Effect to handle a user event that already has an event handler. For example, call `addToCart()` from the click handler, not from an Effect that watches whether the cart changed.
+
+Use an Effect when you need to synchronize with an external system—not merely because a value changed.
+
+For example, if a user selects a category and you need to show the number of products in that category, calculate the count directly from the product array during render. Storing the count in a second state variable and updating it in an Effect creates two values that must stay synchronized. If one update is missed, the displayed count becomes stale. Derived data should normally be derived. By contrast, changing `document.title` or subscribing to a WebSocket really does interact with something outside React, so an Effect is an appropriate boundary.
+
+## Fetching Data from an API
+
+A remote request introduces time and uncertainty into the interface. The user may have a fast connection, a slow connection, no connection, an expired session, or a server that returns an error. We therefore need to model the request as a process rather than pretend that data is available immediately. A useful screen has a clear initial state, a loading state while waiting, a success state when data arrives, an empty state when the result contains no records, and an error state when the request cannot be completed.
+
+A typical data request has several possible outcomes. Represent them explicitly so the interface can respond clearly:
+
+```tsx
+type RequestStatus = 'idle' | 'loading' | 'success' | 'error';
+```
+
+The example below fetches posts from a public demo API. It uses `AbortController` so an old request is cancelled when the component unmounts or the request is no longer relevant.
+
+```tsx
+import { useEffect, useState } from 'react';
+
+type Post = {
+  id: number;
+  title: string;
+  body: string;
+};
+
+type RequestStatus = 'loading' | 'success' | 'error';
+
+export default function PostsPage() {
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [status, setStatus] = useState<RequestStatus>('loading');
+  const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
-    fetch("https://jsonplaceholder.typicode.com/users")
-      .then((response) => response.json())
-      .then((data) => {
-        setUsers(data);
-        setLoading(false);
-      });
-  }, []); // Empty array = Run once on mount
+    const controller = new AbortController();
 
-  if (loading) return <p>Loading...</p>;
+    async function loadPosts() {
+      try {
+        setStatus('loading');
+        setErrorMessage('');
 
-  return <ul>{users.map(u => <li key={u.id}>{u.name}</li>)}</ul>;
-}
-```
-We started by definning two pieces of state.
-- users: We initialize this as an empty array [] because we expect a list of items.
-- loading: We initialize this as true. The data isn't ready the moment the component mounts, so we want the "Loading..." message to appear immediately.
+        const response = await fetch(
+          'https://jsonplaceholder.typicode.com/posts?_limit=5',
+          { signal: controller.signal },
+        );
 
-Next, we used  `fetch` call inside `useEffect` with the dependency array set to empty array (`[]`). This tell React to fetch data only after the first render. 
+        if (!response.ok) {
+          throw new Error(`Request failed: ${response.status}`);
+        }
 
-After fetching and retriving data. We converted the raw response into JSON, and update our states:
-- `setUsers(data)` stores the list.
-- `setLoading(false)` signals to React that we are finished waiting.
+        // This assertion helps TypeScript in the example, but does not
+        // validate the JSON at runtime. Validate untrusted API data in production.
+        const data = (await response.json()) as Post[];
+        setPosts(data);
+        setStatus('success');
+      } catch (error) {
+        if (error instanceof Error && error.name === 'AbortError') {
+          return;
+        }
 
-Before rendering the list, we check the loading state. This pattern is known as an "Early Return." If the data is still loading, we return a simple paragraph tag and stop execution.
+        setErrorMessage(
+          error instanceof Error ? error.message : 'An unexpected error occurred.',
+        );
+        setStatus('error');
+      }
+    }
 
-Once `loading` becomes `false`, the component re-renders. It skips the early return and proceeds to the final return statement. Here, we use the `.map()` method to iterate through our `users` state and generate the `<li>` items.
-## Client-Side Routing
-In traditional web development, every time we click a link, the browser makes a request to the server, the screen flashes white, and a brand new HTML page loads. This is slow and feels "clunky." We loading a full html page for every interection
+    void loadPosts();
 
-React, Focuse on building Single Page Applications (SPAs).
-1. **Single Page:** We only load the HTML file once, when the user first visits.
-2. **JavaScript Navigation:** When the user clicks a link, React intercepts that click, prevents the browser from refreshing, and instantly swaps the components on the screen.
+    return () => controller.abort();
+  }, []);
 
-To achieve this, we use the standard library: **React Router**.
-### Setting Up The Router
-First we need to install `react-router-dom` using `npm install react-router-dom` then we import it to our ``App.js`` file.
-```jsx
-import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
-
-function App() {
-  return (
-    <BrowserRouter>
-      
-      <nav>
-        <Link to="/">Home</Link> | <Link to="/about">About</Link>
-      </nav>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/about" element={<About />} />
-      </Routes>
-
-    </BrowserRouter>
-  );
-}
-```
-To create the routing system, We begin by wrapping our entire application with `<BrowserRouter>`. This component acts as the manager; it listens to the browser's address bar and notifies React whenever the URL changes.
-
-Next, we create navigation links using the `<Link>` component. Instead of an `href`, this component uses a `to` prop to specify the destination route (e.g., `to="/about"`).
-
-To determine **what** to display, we use the `<Routes>` component. This acts like a JavaScript `switch` statement: it looks at the current URL, scans through its children, and renders the first route that matches.
-
-Finally, inside the `<Routes>` container, we define individual `<Route>` components. Each route takes two essential props:
-- `path`: The URL pattern to look for (e.g., `/about`).
-- `element`: The specific Component to render when that path matches.
-### Navigation without Refresh (`<Link>`)
-Why we didn't just use a standard HTML `<a href="...">` tag?
-
-If we use `<a href="/about">`, the browser will force a hard refresh. This reloads our entire app, reconnects to the server, and wipes out any state we currently have like a shopping cart or a filled-out form.
-```
-// Don't do this (Causes a page refresh)
-<a href="/about">Go to About</a>
-
-// Do this (Instant transition, keeps state alive)
-<Link to="/about">Go to About</Link>
-```
-The `<Link>` component updates the URL in the address bar effectively "silently," allowing the `<Routes>` component to see the change and update the screen instantly without reloading the page.
-### Dynamic Routes & URL Params
-Real applications need more then just static URLs like `/about` or `/contact`. Usually, we have data-driven pages. For example, if we have a database of 5,000 movies, we cannot write 5,000 separate `<Route>` lines.
-
-Instead, we use Dynamic Segments, where each movie had id and visiting the URL with that id will load it data.
-#### The Setup
-To apply that we use a colon `:` it tell React Router that a part of the URL is a variable, a placeholder.
-```jsx
-// In your App.js Routes
-// The ":id" tells React: "Expect ANY value here, and call it 'id'"
-<Route path="/movie/:id" element={<MovieDetail />} />
-```
-Here the id is place holder varibales and with this setting our path handles `/movie/1`, `/movie/godzilla`, `/movie/999`, etc.
-#### The Extraction 
-Now that the user is on `/movie/55`, how does the `MovieDetail` component know which movie to fetch? We use the `useParams` hook.
-```jsx
-// Inside MovieDetail.js
-import { useParams } from 'react-router-dom';
-
-function MovieDetail() {
-  const params = useParams(); 
-  const movieId = params.id; 
-
-  return (
-    <div>
-      <h1>Movie Details</h1>
-      <p>You are currently viewing the ID: {movieId}</p>
-      {/* You would usually use this ID to fetch data from an API */}
-    </div>
-  );
-}
-```
-Here, we use the `useParams()` hook to capture dynamic values from the URL. This hook returns an object containing key-value pairs of the URL parameters. Since we defined our route with `:id`, we access that specific value using `params.id`.
-
-**How the data flows:**
-1. The user clicks a link to `/movie/hero-wars`.
-2. The Router matches this URL against the path `/movie/:id`.
-3. The Router identifies that `"hero-wars"` is the value for the placeholder `:id`.
-4. The `useParams()` hook returns the object: `{ id: "hero-wars" }`.
-5. Our component reads this ID and uses it to fetch the correct movie data.
-
-### Advanced Routing
-React Router offers much more powerful features thes hust building static and dynamic routes. When working with complex layouts, dashboards, authentication, and dynamic navigation, we often need nested routes, layout components, and **redirects** to control how users move through our app.
-#### Nested Routing & The `<Outlet />`
-Nested Routing is feature that allow us to create layouts inside other layouts. For example, a dashboard might include a sidebar that never changes, while only the main content updates as the user navigates to "Profile," "Settings," or other pages. Instead of treating each page like a completely separate route, React Router lets us group them under a shared layout using Nested Routing.
-```jsx
-import { Routes, Route, Link, Outlet } from 'react-router-dom';
-
-function DashboardLayout() {
-  return (
-    <div className="dashboard">
-      <nav>
-        <Link to="profile">Profile</Link> | <Link to="settings">Settings</Link>
-      </nav>
-      <hr />
-      <div className="content">
-        <Outlet />
-      </div>
-    </div>
-  );
-}
-
-function App() {
-  return (
-    <Routes>
-      <Route path="/dashboard" element={<DashboardLayout />}>
-        <Route path="profile" element={<Profile />} />
-        <Route path="settings" element={<Settings />} />
-      </Route>
-    </Routes>
-  );
-}
-```
-Here both ``profile`` and ``settings`` live inside the dashboard routes and have shared layout so instead creating a completely separate route, we used the nested layout, when the user visits `/dashboard/settings`:
-1. React first matches the parent route `/dashboard`, so it renders the `DashboardLayout` component. This component acts like a wrapper or layout for all dashboard-related pages.
-2. Inside `DashboardLayout`, React looks for the `<Outlet />` component. which act like placeholder that tells React Router: “Insert the child route here whenever a nested route matches.”
-3. React then matches the child route `"settings"`, which is nested inside the `/dashboard` route. It takes the `Settings` component and injects it directly into the `<Outlet />` position inside the layout
-#### Redirects
-The final powerfull feature that React Router offer is to automatically send and redirect users to a different page. A common example is protecting routes: if someone tries to access the dashboard without being logged in, we redirect them to the homepage or login page. React Router provides the `<Navigate>` component for this purpose.
-```jsx
-import { Navigate } from 'react-router-dom';
-
-function ProtectedRoute({ user, children }) {
-  if (!user) {
-    // Redirect to home if user is not defined
-    return <Navigate to="/" replace />;
+  if (status === 'loading') {
+    return <p role="status">Loading posts...</p>;
   }
-  return children;
-}
-```
-The `ProtectedRoute` component is used to control access to restricted pages. It receives a `user` value and the `children` it should render. If the `user` is not authenticated, it returns `<Navigate to="/" replace />`, which redirects the user to the home page. The `replace` prop ensures that the redirect replaces the current entry in the browser history instead of adding a new one. This prevents the user from clicking “Back” and returning to the protected page. If the user is logged in, the component simply renders the `children`, allowing access to the protected content.
-## The Context API
-In our previous workshop, we built a Todo app and encountered a common issue: a child component needed access to state that was created in a top-level component. To solve this, we passed the state down through multiple components using props this is known as prop drilling.   
 
-React solves this with the Context API. We can think of Context as a way to “broadcast” data to any component that needs it, without manually passing props through every level. Instead of drilling state downward, we can “teleport” values directly to the components that use them.
-### Creating the Context
-To start, we create a context object using `createContext`.
-```jsx
-import { createContext } from "react";
+  if (status === 'error') {
+    return <p role="alert">Could not load posts: {errorMessage}</p>;
+  }
 
-export const ThemeContext = createContext();
-```
-This gives us a container where we will store values we want to share globally like themes, user settings, or language preferences.
-### The Provider
-Once our context is created, we use its **Provider** component to make the data available to any nested components. The Provider accepts a special prop called `value`. Whatever we put inside `value` becomes accessible to all children wrapped inside this Provider.
-```jsx
-function App() {
+  if (posts.length === 0) {
+    return <p>No posts were found.</p>;
+  }
+
   return (
-    <ThemeContext.Provider value="dark">
-      <Dashboard />
-    </ThemeContext.Provider>
+    <main>
+      <h1>Latest posts</h1>
+      <ul>
+        {posts.map((post) => (
+          <li key={post.id}>
+            <h2>{post.title}</h2>
+            <p>{post.body}</p>
+          </li>
+        ))}
+      </ul>
+    </main>
   );
 }
 ```
-Here we wrap our `Dashboard` by the `ThemeContext` Provider. Every child component now has access to the value `"dark"`.
-### Reading Context with `useContext`
-Finally, whenever we want to use the shared data, we call the `useContext` hook. This hook looks for the nearest matching Provider above the component in the tree and gives us the exact value it holds.
-```jsx
-import { useContext } from "react";
-import { ThemeContext } from "./ThemeContext";
 
-function Button() {
-  const theme = useContext(ThemeContext);
+### Why Check `response.ok`?
 
-  return <button className={theme}>Click me</button>;
-}
-```
-Here, the `Button` component instantly receives the value `"dark"` from the Provider.
-### A More Complete Example
-Below is a small, fully functional demonstration of Context in action. Here, we share a theme value and toggle it using nested components.
-```jsx
-import { createContext, useContext, useState } from "react";
+The `AbortController` in the example handles a different problem: relevance. A request may still be running even though the user has left the page or changed the query. Aborting it prevents unnecessary work and helps avoid stale results. Imagine typing “ca”, then “cam”, then “camera” into a search field. If the first request is slower than the third, it must not overwrite the newer result when it finally completes. Cancellation or a request identity check is part of making asynchronous interfaces correct, not just an optimization.
 
-const ThemeContext = createContext();
+`fetch()` rejects for some network failures, but an HTTP response with status `404` or `500` is still a resolved response. Check `response.ok` and handle unsuccessful status codes explicitly.
 
-function App() {
-  const [theme, setTheme] = useState("light");
+### TypeScript Does Not Validate JSON
 
-  return (
-    <ThemeContext.Provider value={{ theme, setTheme }}>
-      <Page />
-    </ThemeContext.Provider>
-  );
-}
+A type assertion such as `response.json() as Post[]` tells TypeScript to trust the developer. It does not inspect the response and prove that every property exists. For production data, validate unknown data at the boundary with a runtime schema library such as Zod or with explicit checks.
 
-function Page() {
+Treat the API boundary like the entrance to your application's trusted data model. The server may change its response, return `null` where a string was expected, or send an error structure instead of the requested records. A TypeScript interface is a promise made by the developer; it does not inspect the bytes received from the network. A robust data flow therefore looks like this: receive the response, check the HTTP status, parse the JSON as `unknown`, validate its shape, and only then pass the validated value into components that expect a `Post[]`. This keeps defensive checks near the boundary instead of scattering them through every visual component.
+
+For an application that performs many API requests, consider a data-fetching solution such as TanStack Query or the data APIs provided by your routing/framework choice. They can help with caching, retries, synchronization, and request lifecycle management. The purpose here is to understand the browser and React fundamentals first.
+
+## The `useRef` Hook
+
+State and refs both preserve values between renders, but they serve different purposes. State is for information that should cause the interface to update when it changes. A ref is for a mutable value that a component needs to remember without making that value part of the rendered output. Keeping this distinction clear prevents a common mistake: using a ref for a value that the user expects to see change, or using state for a timer identifier that should not cause a render.
+
+`useRef` stores a value that persists between renders without causing a re-render when it changes. A common use is obtaining a reference to a DOM element.
+
+```tsx
+import { useRef } from 'react';
+
+function SearchBox() {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  function focusSearch() {
+    inputRef.current?.focus();
+  }
+
   return (
     <div>
-      <h1>Welcome</h1>
-      <ThemeToggle />
+      <label htmlFor="search-box">Search</label>
+      <input id="search-box" ref={inputRef} />
+      <button type="button" onClick={focusSearch}>Focus search</button>
     </div>
   );
 }
+```
 
-function ThemeToggle() {
-  const { theme, setTheme } = useContext(ThemeContext);
+The initial value is `null` because the DOM element does not exist before React mounts it. The optional chaining operator (`?.`) avoids calling `focus()` when the reference is still null.
+
+Other uses include storing a timeout ID or keeping a mutable value that is needed by event handlers but should not be displayed. Do not use refs as a substitute for state when a change should update the screen.
+
+The DOM reference example also demonstrates a controlled exception to React's declarative model. The browser already provides a focus API, and React refs give the component a safe way to access the mounted input when the user clicks the “Focus search” button. The component is not taking over normal rendering; it is asking the browser to perform an operation that belongs to the DOM. Use this approach for focus, measurement, media playback, or integration with a third-party widget when a declarative prop is not enough.
+
+## Create a Custom Hook
+
+As more features use timers, event listeners, or similar synchronization logic, the same behavior may appear in several components. Copying the code creates several places to maintain and several opportunities for cleanup to be missed. A custom Hook extracts the reusable stateful behavior into one function while allowing each caller to keep its own independent state.
+
+A custom Hook is a function whose name begins with `use` and that can call other Hooks. It lets us reuse stateful logic without duplicating it across components.
+
+Example: debounce a value so a search request does not run for every single keystroke.
+
+```tsx
+import { useEffect, useState } from 'react';
+
+export function useDebouncedValue<T>(value: T, delayMs: number): T {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setDebouncedValue(value);
+    }, delayMs);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [value, delayMs]);
+
+  return debouncedValue;
+}
+```
+
+Use it in a component:
+
+```tsx
+function SearchPage() {
+  const [query, setQuery] = useState('');
+  const debouncedQuery = useDebouncedValue(query, 350);
+
+  useEffect(() => {
+    if (!debouncedQuery.trim()) return;
+    // Synchronize with a search API here.
+  }, [debouncedQuery]);
 
   return (
-    <button onClick={() => setTheme(theme === "light" ? "dark" : "light")}>
-      Current theme: {theme}
+    <label>
+      Search shows
+      <input value={query} onChange={(event) => setQuery(event.target.value)} />
+    </label>
+  );
+}
+```
+
+Custom Hooks should hide reusable behavior, not simply rename a component or create an abstraction with no clear benefit.
+
+A custom Hook shares logic, not a single shared state instance. If two components call `useDebouncedValue` with different inputs, each call manages its own timer and debounced value. This is different from putting state in a global store. Also remember the Rules of Hooks: call Hooks at the top level of React components or other Hooks, not inside loops, conditions, or ordinary event handlers. That stable call order lets React associate Hook state with the correct component.
+
+## Browser Storage
+
+Browser storage is another external system. It can preserve a small preference after the page is refreshed, but it should not be confused with server persistence. A theme preference can safely be stored on the user's device; a stock quantity that multiple employees must see consistently belongs in the server-side data model. Choose storage based on who needs the information, how long it must survive, and whether it must be shared across devices or users.
+
+`localStorage` stores string values in the browser and survives a page reload. It is useful for non-sensitive preferences or small client-side drafts. It is not a secure database and should not store sensitive secrets.
+
+A small synchronization example:
+
+```tsx
+import { useEffect, useState } from 'react';
+
+function ThemePreference() {
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    const savedTheme = localStorage.getItem('theme');
+    return savedTheme === 'dark' ? 'dark' : 'light';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('theme', theme);
+    document.documentElement.dataset.theme = theme;
+  }, [theme]);
+
+  return (
+    <button onClick={() => setTheme((current) => current === 'light' ? 'dark' : 'light')}>
+      Switch to {theme === 'light' ? 'dark' : 'light'} mode
     </button>
   );
 }
 ```
-We first created our context using `createContext()`. After that, we wrapped the `Page` component inside the Context Provider. The Provider accepts a `value` prop, with it we exposed both the current theme and the function used to toggle it.
 
-Finally, the `ThemeToggle` component, which lives deeper in the tree, uses the `useContext(ThemeContext)` hook to instantly access both the current theme value and the updater function. with that it can read and modify the theme without receiving anything from its parent.
-## The `useRef` Hook
-The ``useState`` good to save and manipulate data but each time we update the state React re-render and update the UI. Sometimes, we need to store information that persists between renders but should not cause the component to re-paint when we update them, This is exactly where the `useRef` hook shines.
+This example is appropriate for a client-rendered browser app. Code that accesses `window` or `localStorage` needs special handling if the application later uses server-side rendering, because those browser globals do not exist on the server.
 
-The `useRef` returns a mutable object with a single property: `.current`. We can update the `.current` value whenever we want, and React won't notice or care.
-### Creating a Ref
-To create a ref, we call the `useRef` hook. The argument we pass to it becomes the initial value of the property.
-```jsx
-const inputRef = useRef(null);
-```
-The hook returns a plain JavaScript object that looks exactly like this:
-```jsx
-{
-  current: null // or whatever initial value you passed
-}
-```
-Any data stored in `.current` will live for the entire lifespan of the component, surviving every re-render.
-### Using a Ref to Access the DOM
-One of the primary use cases for `useRef` is accessing a DOM element directly. While React prefers to handle the DOM for us ("Declarative"), sometimes we need to get our hands dirty ("Imperative") for tasks like:
-- Focusing an input on load or button click.
-- Scrolling to a specific section.
-- Measuring an element’s width or height.
-- Interacting with HTML5 Canvas or Media players.
+The lazy initializer passed to `useState` reads the preference only when the component initializes, rather than re-reading storage on every render. The Effect then writes the selected theme back when it changes. This is a small example of keeping browser interaction at the edge of the component. In more complex applications, consider how to handle invalid stored values, storage access failures, multiple tabs, and the possibility that the user has disabled storage.
 
+## Workshop Challenge: API-Powered Search
 
-**Example: Focusing an Input**
-```jsx
-import { useRef } from 'react';
+Create a search page that:
 
-function Example() {
+1. Accepts a search term from a controlled input.
+2. Debounces the value before making a request.
+3. Displays loading, error, empty, and success states.
+4. Cancels obsolete requests when a new search starts or the component unmounts.
+5. Renders results with stable keys.
+6. Uses a custom Hook for behavior that is genuinely reusable.
+7. Does not inject untrusted API strings into the DOM as HTML.
 
-  const inputRef = useRef(null);
+## Professional Recap
 
-  const focusInput = () => {
-    
-    if (inputRef.current) {
-      inputRef.current.focus();
-    }
-  };
+- `useEffect` synchronizes React with external systems; it is not a generic lifecycle replacement.
+- Every reactive value read by an Effect belongs in its dependency list.
+- Clean up subscriptions, timers, and in-flight work when needed.
+- Avoid Effects for values that can be derived during render or logic that belongs in an event handler.
+- `fetch` requires explicit handling for HTTP error statuses.
+- Type assertions do not validate external JSON at runtime.
+- `useRef` persists mutable values without triggering a render; use state for values displayed in the UI.
+- Custom Hooks share stateful logic; they do not share one state instance between all callers.
 
-  return (
-    <div>
-      <input ref={inputRef} />
-      <button onClick={focusInput}>Focus Input</button>
-    </div>
-  );
-}
-```
-Here we initialized `inputRef` as an object with a `current` property set to `null`. When React renders the `<input>` element, it notices the `ref` and it assigns the input element to `inputRef.current`. When we call `focusInput` we check the value `inputRef.current` if it not null this mean it set to the input element we use `inputRef.current.focus()` to focus the input field.
-### Refs Persist Between Renders
-Another feature of `useRef` is that it never resets during re-renders, yet updating it does not trigger a new render. This makes it perfect for "hidden state" data that needs to be remembered but doesn't affect what the user sees.
+### Self-Check
 
-**Example:**   
-Storing Previous Value Without Triggering Re-renders
-```jsx
-import './App.css';
-import { useEffect, useRef, useState } from 'react';
+Can you explain why an Effect needs cleanup? Can you distinguish a network error from an HTTP error? Can you show a loading and error state? Can you explain when `useRef` is more appropriate than `useState`? If not, revisit those sections.
 
-function PreviousValueExample() {
+## How This Leads to Workshop 4
 
-  const [count, setCount] = useState(0);
-  const previousCount = useRef(null);
-
-  useEffect(() => {    
-    previousCount.current = count;
-  });
-
-  return (
-    <div>
-      <h1>Current: {count}</h1>
-      <h2>Previous: {previousCount.current}</h2>
-
-      <button onClick={() => setCount(count + 1)}>
-        Increment
-      </button>
-    </div>
-  );
-}
-
-function App() {
-  return (
-    <div className="App">
-      <PreviousValueExample />
-    </div>
-  );
-}
-
-export default App;
-```
-Here, we created a counting app that keeps track of both the previous and current count. We use the **count** state to store and update the current value, and a ref called **previousCount** to store the previous one. Since the ``useEffect`` doesn't have a dependency array, it runs after every render. Inside this effect, we assign previousCount.current = count. Initially, count is 0, and the effect sets the ref to 0.   
-
-When the user clicks the Increment button, ``setCount`` updates the state, and React immediately re-renders the component with the new count value (e.g., 1). During this new render, the ``previousCount.current`` value displayed in the UI is still 0 (the value from the render before the click). After this render finishes, the useEffect runs, updating previousCount.current to the current count value (1), preparing it to display the correct "previous" value in the next render cycle.
-
-### Forwarding Refs
-We used before ``ref`` to access input field and focus it. However what if the input field was inside child element or other component.Here to access it we use `forwardRef`.   
-
-The forwardRef, wrap the child component and allow the parent to attach the ref to the desired DOM element inside the child component.   
-**Example**
-```jsx
-import { forwardRef, useRef } from "react";
-
-const CustomInput = forwardRef((props, ref) => {
-  return <input ref={ref} type="text" placeholder="Type something..." />;
-});
-
-export default function App() {
-  const inputRef = useRef();
-
-  const focusInput = () => {
-    inputRef.current.focus(); 
-  };
-
-  return (
-    <div>
-      <CustomInput ref={inputRef} />
-      <button onClick={focusInput}>Focus Input</button>
-    </div>
-  );
-}
-```
-Here we created a `CustomInput` component usîng `forwardRef` which takes a render function as its argument. This render function receives two parameters:
-1. **`props`**  all the props passed to the component.
-2. **`ref`** the forwarded ref from the parent component.
-
-Inside `CustomInput`, we attach this `ref` directly to the internal `<input>` element. This allows the parent component to access and manipulate the input element directly, such as focusing it or reading its value.
-
-In the parent **`App`** component, we created a ref (`inputRef`) using `useRef()` and passed it to `CustomInput` as a prop. We also added a button that, when clicked, calls `inputRef.current.focus()`, which directly focuses the input inside the child component.
-## Building a Movie Database App
-### Introduction
-Let's combine the concepts of API fetching, Routing, and Context to build a "Mini Movie DB." Users will be able to search for TV shows using the **TVMaze API**, view a list of results, and click on a show to see a dedicated details page.
-
-We will also implement a global "Dark Mode" feature using React Context to manage state across the entire application without passing props manually through every level.
-### App Logic
-Before we write code, let's break down the requirements:
-1. **Home Page:** This needs a search bar and a grid to display results. We will use `useRef` to capture input and `useEffect` to fetch data from the API.
-2. **Details Page:** When a user clicks a movie, we need a dedicated page. We will use URL Parameters (`:id`) to fetch details for that specific show.
-3. **Global State:** We need a toggle for Light/Dark mode that persists regardless of which page we are on.
-### Project Structure & Organization
-Up until now, we might have written multiple components inside a single `App.js` file for simplicity. However, as applications grow, this becomes unmanageable.
-
-For this project, we will move each component into its own file. This practice, known as Separation of Concerns, makes code easier to read, debug, and reuse.
-
-Our folder structure inside `src/` should look like this:
-```
-src/
- ├── components/
- │     ├── Home.jsx
- │     ├── ShowDetail.jsx
- ├── context/
- │     └── ThemeContext.jsx
- ├── App.js
- ├── App.css
- └── index.js
-```
-### Creating the Components
-Now, let's build our components file by file.
-#### Theme Context (`ThemeContext.js`)
-First, we create a context to manage our styling globally. This allows us to avoid "prop-drilling" , passing the theme prop down through layers of components that don't need it.
-
-**Create a file named `ThemeContext.js`:**
-```jsx
-import { createContext, useState, useContext } from 'react';
-
-const ThemeContext = createContext();
-
-export function ThemeProvider({ children }) {
-  const [darkMode, setDarkMode] = useState(false);
-
-  const toggleTheme = () => setDarkMode(!darkMode);
-
-  return (
-    <ThemeContext.Provider value={{ darkMode, toggleTheme }}>
-      <div className={darkMode ? "app dark" : "app light"}>
-        {children}
-      </div>
-    </ThemeContext.Provider>
-  );
-}
-
-export const useTheme = () => useContext(ThemeContext);
-```
-In this code, we start by creating a context using `createContext()`. A context is like a shared storage space that React can use to pass data deeply through the component tree without needing to pass props manually at every level. In this case, `ThemeContext` will hold information about the theme, such as whether the app is in dark mode or light mode.
-
-The `ThemeProvider` is a component we created to “provide” this shared data to anything inside it. Inside the provider, we use `useState(false)` to store a boolean called `darkMode`. This value tells us which theme is currently active. We also define a function called `toggleTheme` that flips this value between true and false. The provider then wraps its children in `ThemeContext.Provider` and sends the values `{ darkMode, toggleTheme }` to all nested components. Additionally, it applies a different CSS class depending on whether dark mode is active, allowing the UI to visually update.
-
-The `useContext` hook is used to read the data stored in a context. Instead of using `useContext(ThemeContext)` everywhere, we create a small helper called `useTheme`. This custom hook simply calls `useContext(ThemeContext)` for us. This makes it easier and cleaner for any component to access the theme. When a component calls `useTheme()`, it receives the current `darkMode` value and the `toggleTheme` function.
-
-In short, `createContext` creates the shared space, `ThemeProvider` fills that space with values and makes them available to the app, and `useContext` (wrapped inside our `useTheme` hook) allows any component to read and use that shared data.
-#### The Home Page (`Home.js`)
-This component handles the search logic.
-
-**Create a file named `Home.js`:**
-```jsx
-import { useState, useRef } from 'react';
-import { Link } from 'react-router-dom';
-
-function Home() {
-  const [shows, setShows] = useState([]);
-  const searchInput = useRef(null); 
-
-  const searchShows = async () => {
-    const query = searchInput.current.value;
-    if(!query) return;
-
-    const response = await fetch(`https://api.tvmaze.com/search/shows?q=${query}`);
-    const data = await response.json();
-    setShows(data);
-  };
-
-  return (
-    <div className="container">
-      <h1>TV Show Search</h1>
-      <div className="search-bar">
-        <input ref={searchInput} type="text" placeholder="e.g. Breaking Bad" />
-        <button onClick={searchShows}>Search</button>
-      </div>
-
-      <div className="grid">
-        {shows.map((item) => (
-          <div key={item.show.id} className="card">
-            <img src={item.show.image?.medium} alt={item.show.name} />
-            <h3>{item.show.name}</h3>
-            <Link to={`/show/${item.show.id}`}>View Details</Link>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-export default Home;
-```
-In this component, we use two hooks. `useState([])` stores the list of TV shows returned from the API, and `useRef(null)` gives us a direct reference to the input field so we can read its value without storing it in state.
-
-The `searchShows` function runs when the user clicks the Search button. It reads the text from the input using `searchInput.current.value`. If the user typed something, we call the TVMaze API using `fetch`, convert the response to JSON, and save the results in the `shows` state. Updating the state automatically displays the new list of shows.
-
-The UI includes a search bar and a grid of show cards. Each card shows an image, the show’s name, and a link. The `<Link>` component sends the user to a dynamic route like `/show/ID`, where they can view more details about the selected show.
-
-We export the `Home` component so it can be used as one of the pages in our React Router app.
-#### The Details Page (`ShowDetail.js`)
-When a user clicks a link, this component loads. It grabs the ID from the URL and fetches the specific data.
-
-**Create a file named `ShowDetail.js`:**
-```jsx
-import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
-
-function ShowDetail() {
-  const { id } = useParams(); // Get the ID from URL (e.g., /show/123)
-  const [show, setShow] = useState(null);
-
-  useEffect(() => {
-    fetch(`https://api.tvmaze.com/shows/${id}`)
-      .then(res => res.json())
-      .then(data => setShow(data));
-  }, [id]);
-
-  if (!show) return <h2>Loading...</h2>;
-
-  return (
-    <div className="container detail-page">
-      <Link to="/" className="back-btn">← Back</Link>
-      <div className="detail-content">
-        <img src={show.image?.original} alt={show.name} />
-        <div>
-          <h1>{show.name}</h1>
-          <p dangerouslySetInnerHTML={{ __html: show.summary }}></p>
-          <p><strong>Rating:</strong> {show.rating?.average}</p>
-        </div>
-      </div>
-    </div>
-  );
-}
-export default ShowDetail;
-```
-The ``ShowDetail`` component display detail about show, we use React Router’s `useParams()` to get the show’s ID from the URL. This lets us know which show the user wants to view. We store the show’s data in state using `useState(null)`.
-
-The `useEffect` hook runs whenever the `id` changes. Inside it, we fetch detailed information about the show from the TVMaze API using the ID from the URL. Once the data arrives, we update the `show` state, and the page re-renders with the show’s details.
-
-Before the data loads, we return a simple “Loading…” message. After that, the page displays the show’s image, title, summary, and rating. The summary is rendered using `dangerouslySetInnerHTML` because the API returns HTML tags inside the text.
-
-We also include a `<Link>` at the top that takes the user back to the home page. Finally, we export the `ShowDetail` component so it can be used in our router setup as the page for viewing individual show details.
-#### The App (`App.js`)
-Finally, we bring everything together. `App.js` acts as the traffic controller for our application.
-
-**Update your `App.js`:**
-```jsx
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import Home from './components/Home';
-import ShowDetail from './components/ShowDetail';
-import { ThemeProvider, useTheme } from './context/ThemeContext';
-import './App.css';
-// A small Header component to hold the Theme Toggle
-function Header() {
-  const { darkMode, toggleTheme } = useTheme();
-  return (
-    <header>
-      <span>🎬 MovieDB</span>
-      <button onClick={toggleTheme}>
-        {darkMode ? "☀️ Light Mode" : "🌙 Dark Mode"}
-      </button>
-    </header>
-  );
-}
-
-function App() {
-  return (
-    <ThemeProvider>
-      <BrowserRouter>
-        <Header />
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/show/:id" element={<ShowDetail />} />
-        </Routes>
-      </BrowserRouter>
-    </ThemeProvider>
-  );
-}
-
-export default App;
-```
-Finally, in our `App.js`, we import all the components we need. First, we create a **Header** component, which displays the app title and includes a button to switch between light and dark mode using our theme context.
-
-After that, we define the **App** component. We wrap the entire app in two wrappers: **`ThemeProvider`**, which gives every component access to the dark mode state, and **`BrowserRouter`**, which enables routing between pages. Inside `<Routes>`, we define our paths: `/` for the `Home` component and `/show/:id` for the dynamic `ShowDetail` page, where `:id` corresponds to the selected show’s ID.
-### Adding Styles
-To visualize the Dark/Light mode and organize the grid, replace the content of `App.css` with the following:
-```css
-/* Global App Themes */
-.app { min-height: 100vh; transition: 0.3s; font-family: sans-serif; }
-.app.light { background: #f4f4f4; color: #333; }
-.app.dark { background: #222; color: #fff; }
-.app.dark a { color: #4da6ff; }
-
-/* Header */
-header {
-  display: flex; justify-content: space-between; padding: 20px;
-  background: rgba(0,0,0,0.1); align-items: center;
-}
-
-.container { max-width: 800px; margin: 0 auto; padding: 20px; }
-
-/* Search */
-.search-bar { display: flex; gap: 10px; margin-bottom: 30px; }
-input { flex: 1; padding: 10px; border-radius: 5px; border: 1px solid #ccc; }
-button { padding: 10px 20px; cursor: pointer; }
-
-/* Grid */
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 20px; }
-.card { background: rgba(255,255,255,0.1); padding: 10px; border-radius: 8px; text-align: center; }
-.card img { width: 100%; border-radius: 5px; }
-.card h3 { font-size: 1rem; margin: 10px 0; }
-
-/* Detail Page */
-.detail-content { display: flex; gap: 20px; margin-top: 20px; }
-.detail-content img { max-width: 300px; }
-```
-
-The CSS relies on the `.app` div in `ThemeContext.js` switching classes between `.light` and `.dark`. When the state changes, these CSS variables apply immediately, creating a seamless theme switch.
+You can now connect a component to data and browser features while keeping loading, error, and cleanup behavior explicit. As the application grows, users need stable ways to revisit that information and move between related views. Workshop 4 introduces URLs and routes, then uses the state lessons from this workshop to decide which information belongs in a page, in shared client state, or on the server.
