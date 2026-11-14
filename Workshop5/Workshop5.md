@@ -1,8 +1,22 @@
 # Workshop 5: Design Philosophy, Design Language, and Design Systems
 
-Up to this point, the course has focused on making an application work. But a technically correct interface can still be difficult to use if people cannot find important information, do not understand the controls, or receive no feedback after an action. This workshop changes the starting question. Instead of asking which component to code first, we ask what the user is trying to accomplish and what kind of interface would help them do it. We will move through a connected design process: understand the problem, define principles, establish a design language, store repeated decisions as tokens, build reusable components, and organize pages with templates.
+Up to this point, the course has focused on making an application work. We have learned how to build components, manage state, handle user interactions, communicate with APIs, and organize applications into multiple pages.
+
+However, a technically correct application is not necessarily a good application. Users may struggle to find important information, misunderstand the available controls, or receive no feedback after performing an action. These problems are not caused by programming errors; they are design problems.
+
+This introduces another important part of front-end development: understanding how an application should look, behave, and communicate with its users.
+
+Imagine building a management application for a small store. Employees may need to check product quantities, locate products, register sales, and manage customer information. Although we can implement all these features using React, the application will not be useful if employees struggle to understand the interface or complete their daily tasks.
+
+Therefore, before deciding which components to build, we need to understand the people who will use the application and the problems they are trying to solve.
+
+In this workshop, we will explore a connected design process. We will begin by understanding the relationship between user experience and interface design, then establish a design philosophy that guides our decisions. From there, we will develop a consistent design language, store repeated decisions as design tokens, and use those decisions to create reusable components and page templates.
+
+Finally, we will translate these ideas into React components and responsive CSS, while considering accessibility and usability throughout the process.
 
 ## Objectives
+
+By the end of this workshop, you should be able to:
 
 - Understand the difference between UX, UI, visual design, and front-end implementation.
 - Define a design philosophy based on user needs and product goals.
@@ -10,44 +24,83 @@ Up to this point, the course has focused on making an application work. But a te
 - Understand design tokens, component libraries, and design systems.
 - Use page templates to create consistent application layouts.
 - Translate a design brief into React components and responsive CSS.
-- Apply accessibility and responsive design from the beginning, not as a final decoration step.
+- Apply accessibility and responsive design from the beginning, rather than treating them as final adjustments.
 
 ## Why Front-End Developers Need Design Skills
 
-Front-end development is not only converting a picture into HTML and CSS. The developer must understand what a user is trying to accomplish, organize information, select suitable interface patterns, implement interactions, and make the result work across devices and input methods.
+Front-end development is not simply the process of converting a picture into HTML and CSS.
 
-A good interface is not necessarily the one with the most animation or visual effects. It is the one that helps the intended user complete the intended task clearly, efficiently, and reliably.
+A developer must understand what the user is trying to accomplish, organize information, select suitable interface patterns, implement interactions, and make sure the result works across different devices and input methods.
+
+Consider two applications that perform exactly the same operations. Both allow employees to manage products, register sales, and view stock information. However, one application presents important information clearly, uses familiar controls, and provides feedback after every action. The other uses inconsistent layouts, unclear buttons, and confusing navigation.
+
+Although both applications may be technically correct, they do not provide the same experience.
+
+A good interface is therefore not necessarily the one with the most animations, colors, or visual effects. It is the one that helps the intended user complete the intended task clearly, efficiently, and reliably.
 
 ### UX, UI, Visual Design, and Front-End Development
 
-These terms are related but not interchangeable:
+Before going further, we need to understand four related terms that are often used together but describe different aspects of product development.
 
-- **User Experience (UX):** The overall experience of using a product. It includes the user's goals, workflow, information structure, feedback, and obstacles.
-- **User Interface (UI):** The interactive surface through which the user works: controls, navigation, forms, content, and feedback.
-- **Visual design:** The use of typography, color, spacing, shape, imagery, contrast, and hierarchy to communicate meaning and establish a coherent appearance.
-- **Front-end development:** Implementing the interface with browser technologies so it is functional, responsive, accessible, and maintainable.
+**User Experience (UX)** refers to the overall experience of using a product. It includes the user's goals, workflows, information structure, feedback, and obstacles encountered while interacting with the application.
 
-A front-end developer should be able to read a design, question ambiguous behavior, identify missing states, and implement the design in a way that remains usable beyond the exact screenshot.
+**User Interface (UI)** refers to the interactive surface through which the user works. It includes navigation, buttons, forms, content areas, and other interface elements.
 
-Imagine a store employee who opens a dashboard at the beginning of a shift. They may need to identify low-stock products quickly, locate a customer, or record a sale. A screenshot can show the arrangement of cards and buttons, but it cannot always tell you what should happen when a list is empty, a save fails, a user zooms the page, or the employee navigates using only a keyboard. Design understanding means thinking about the complete interaction, not just the default picture.
+**Visual Design** focuses on how the interface looks and communicates information. It uses typography, color, spacing, shape, imagery, contrast, and visual hierarchy to create a coherent appearance.
+
+**Front-End Development** is the process of implementing the interface using browser technologies. The developer translates the design into functional, responsive, accessible, and maintainable code.
+
+These areas are closely connected. UX helps us understand what the user needs, UI defines how the user interacts with the product, visual design determines how information and controls are presented, and front-end development brings everything together in a working application.
+
+A front-end developer should therefore be able to read a design, identify ambiguous behavior, recognize missing interface states, and implement the intended experience rather than simply reproduce a screenshot.
+
+Imagine a store employee who opens a dashboard at the beginning of a shift. They may need to identify products with low stock, locate a customer, or record a sale. A screenshot can show the arrangement of cards and buttons, but it cannot always explain what should happen when a list is empty, a save operation fails, the user zooms into the page, or the employee navigates using only a keyboard.
+
+Understanding design means thinking about the complete interaction, not just the default appearance of the interface.
 
 ## Design Philosophy
 
-A design philosophy is the set of principles that guide decisions across the product. It explains what the interface should prioritize and why.
+Before deciding how an application should look, we need to establish the principles that will guide our decisions.
 
-A practical philosophy for a business application might be:
+This is called a **design philosophy**.
 
-The philosophy is the product's decision-making filter. When two designs are possible, the team can ask which one better supports the agreed principles. For a business dashboard, a principle such as “make urgent information visible without making every element compete for attention” might lead to a clear low-stock indicator near the product quantity, a restrained warning color, and a filter that brings affected products together. The principle does not prescribe exact pixels; it guides the reasoning that leads to those details.
+A design philosophy is a set of principles that explains what the interface should prioritize and why. It acts as a decision-making filter throughout the product's development.
+
+For example, a practical design philosophy for a business management application might be:
 
 > Make important information easy to find, keep repeated actions consistent, provide immediate feedback, and avoid visual complexity that does not help the user complete a task.
 
-Turn that philosophy into concrete principles:
+This philosophy tells us what matters when designing the application. When two possible designs are available, the team can evaluate which one better supports these principles.
+
+Imagine that we are designing a dashboard for managing store inventory. One possible design displays every product using the same visual treatment. Another highlights products with low stock using a restrained warning indicator and provides a filter to display only affected products.
+
+The second design better supports the goal of making urgent information visible without making every element compete for attention.
+
+Notice that the philosophy does not prescribe exact colors, fonts, or component dimensions. Instead, it guides the reasoning that leads to those decisions.
+
+We can translate this philosophy into several practical design principles.
 
 ### User-Centered Design
 
-To answer those questions, describe tasks in the user's language. “The employee wants to know which products need reordering” is more useful than “the page needs a red card.” The first statement identifies a goal; the second jumps to a visual solution before the problem is understood. You can then observe or map the current workflow, identify the information needed, and determine where mistakes are likely to occur. This does not require a large research department. Even a short conversation with intended users can reveal assumptions that would otherwise become expensive interface changes.
+The first principle is to start with the people who will use the application and the tasks they need to complete.
 
-Start with users and their tasks, not with colors or animations. Identify:
+Instead of immediately deciding that a dashboard needs a red card, we should first understand why the information matters.
+
+For example, the statement:
+
+"The employee wants to know which products need reordering."
+
+is more useful than:
+
+"The page needs a red card."
+
+The first statement describes a user goal, while the second jumps directly to a visual solution without understanding the problem.
+
+Once we understand the goal, we can investigate the current workflow, identify the information needed, and determine where mistakes are likely to occur.
+
+This does not require a large research department. Even a short conversation with the intended users can reveal assumptions that would otherwise lead to expensive design changes.
+
+When designing a product, consider the following questions:
 
 - Who will use the application?
 - What are they trying to accomplish?
@@ -55,93 +108,215 @@ Start with users and their tasks, not with colors or animations. Identify:
 - What mistakes are likely, and how can the interface prevent or recover from them?
 - What devices, screen sizes, abilities, and environments must be supported?
 
+Answering these questions gives us a better understanding of the problem before we begin designing the solution.
+
 ### Visual Hierarchy
 
-A practical way to test hierarchy is to look at a screen for a few seconds and ask what a first-time user would notice first, second, and third. If every card uses the same size, color, border, and heading weight, the eye has no clear path. A page title establishes context; a primary action signals what can be done; supporting data answers related questions. Spacing and alignment group related information, while contrast helps important elements stand apart. Hierarchy should follow task importance, not the developer's desire to make every component look impressive.
+Once we understand what information the user needs, we must decide how to organize and present it.
 
-Not every element should compete for attention. Use size, position, spacing, contrast, and grouping to show the relationship between information.
+Not every element should compete for attention. If every card uses the same size, color, border, and heading weight, the user will struggle to understand where to look first.
 
-A useful screen often has a clear order:
+Visual hierarchy solves this problem by using size, position, spacing, contrast, and grouping to communicate the relative importance of information.
 
-1. Page title and current context.
-2. The primary task or most important information.
+A well-organized screen usually has a clear reading order. The page title establishes the current context, the primary action indicates what the user can do, and the main content presents the information needed to complete the task. Supporting information and secondary actions should remain accessible without distracting from the primary purpose.
+
+A practical way to test visual hierarchy is to look at a screen for a few seconds and ask what a first-time user would notice first, second, and third.
+
+For example, a store inventory dashboard might prioritize:
+
+1. The page title and current context.
+2. Important stock information and primary actions.
 3. Supporting information and secondary actions.
-4. Optional details and less frequent actions.
+4. Optional details and less frequently used actions.
+
+Spacing and alignment help group related elements, while contrast helps important information stand apart.
+
+The goal is to make the interface easier to scan and understand, rather than making every component visually impressive.
 
 ### Consistency
 
-Consistency is not the same as making every page identical. It means that the same kind of control behaves in a familiar way wherever it appears. If the primary action is always visually clear, if form errors are presented in a predictable place, and if destructive actions use a consistent warning pattern, users can transfer what they learned on one screen to another. This reduces the mental effort required to operate the application and makes the product feel intentional.
+Consistency is another important principle because users should not need to relearn the interface every time they move to another page.
 
-Controls that perform the same kind of action should behave and look consistently. Repeated patterns reduce the amount a user needs to learn. Consistency applies to button hierarchy, form behavior, navigation, wording, spacing, icons, and error messages.
+Imagine that the primary action is displayed as a blue button on the dashboard but appears as a gray text link on the product page. Similarly, suppose validation errors appear below inputs on one form but inside a notification at the top of another.
+
+These differences may seem small, but they introduce unnecessary uncertainty.
+
+A consistent interface uses similar visual and interaction patterns for similar tasks. Buttons that perform comparable actions should look and behave consistently, form errors should follow a predictable pattern, and navigation should maintain the same structure across pages.
+
+Consistency applies to button hierarchy, form behavior, navigation, wording, spacing, icons, and feedback messages.
+
+It does not mean making every page identical. Each page can have a different purpose while still following the same design rules.
+
+The benefit is that users can transfer what they learned on one screen to another, reducing the mental effort required to operate the application.
 
 ### Feedback and Affordance
 
-Feedback closes the interaction loop. When a user saves a product, the interface should communicate whether the save is in progress, succeeded, or failed. Without feedback, the user may click again, leave the page, or assume the application has lost the change. Affordance is related: the visual and behavioral cues should help users predict what an element does before they activate it. Clear labels and native controls often communicate more reliably than unfamiliar decorative elements.
+When a user interacts with an application, the interface should communicate what happened.
 
-A control should communicate what it does and respond when used. Buttons need hover, focus, active, disabled, loading, and sometimes success states. A destructive action should be distinguishable from a normal action and may need confirmation or an undo path.
+Imagine that an employee clicks a button to save a new product. If nothing changes and no message appears, the employee may wonder whether the operation succeeded. They might click again, leave the page, or assume that the application has lost the information.
 
-An affordance is a cue that helps someone understand how to interact with an element. A button should look and behave like a button; a link should navigate; a checkbox should communicate a binary choice.
+Feedback closes this interaction loop by communicating the result of an action.
+
+For example, a button may display a loading indicator while an operation is processing, followed by a success message when the operation finishes. If the operation fails, the interface should explain what happened and, where possible, how the user can recover.
+
+Interactive controls should also communicate how they are expected to be used.
+
+This is related to a concept called **affordance**.
+
+An affordance is a visual or behavioral cue that helps someone understand how to interact with an element. A button should look and behave like a button, a link should indicate navigation, and a checkbox should communicate a selectable state.
+
+For example, buttons should provide appropriate hover, focus, active, disabled, and sometimes loading states. A destructive action should be visually distinguishable from a normal action and may require confirmation or an undo option.
+
+Clear labels and familiar native controls are often more effective than unfamiliar decorative elements.
 
 ### Simplicity and Progressive Disclosure
 
-Simplicity does not mean removing useful capability. It means presenting complexity at the moment it becomes relevant. A product list may show the most useful columns by default while allowing advanced filters to be opened when necessary. A form can show a short set of required fields first and reveal optional settings in a clearly named section. The user should not have to understand every advanced option before completing a routine task.
+A simple interface is not necessarily an interface with very few features. It is an interface that presents information and functionality at the appropriate time.
 
-Show what people need for the current task. Avoid hiding essential information, but do not overload every screen with every possible option. Advanced filters, detailed settings, or secondary actions can be revealed when needed.
+Consider a product management page containing dozens of filters, settings, and actions. Displaying all of them immediately may make the page overwhelming, especially for employees who only need to search for a product or check its quantity.
+
+Instead, we can show the most frequently used controls first and make advanced filters available when needed.
+
+This approach is called **progressive disclosure**.
+
+The idea is to present what users need for their current task without hiding essential information. Advanced settings, detailed filters, and secondary actions can be revealed when they become relevant.
+
+For example, a product form might display the name, price, and quantity fields first, while optional settings appear in a separate expandable section.
+
+The user can complete the common operation without needing to understand every available option.
 
 ### Accessibility and Inclusion
 
-Accessibility should influence the first design sketch. For example, if a status is indicated only by a red or green dot, a person who cannot distinguish those colors may not know the meaning. Add text or another non-color cue. If an interaction works only on hover, keyboard and touch users may not be able to access it. If text is too small or contrast is weak, people may struggle even when the layout looks attractive on a designer's monitor. Accessible design improves the clarity and resilience of the interface for a wide range of users.
+Accessibility should influence design decisions from the beginning rather than being treated as a final adjustment.
 
-Accessibility is part of product quality. Design for keyboard use, screen readers, zoom, different contrast needs, reduced motion, and different ways of interacting. Do not rely on color alone to communicate status. Use semantic HTML and give controls clear accessible names.
+Imagine that a product status is indicated using only a red or green dot. A person who cannot distinguish those colors may not understand the meaning.
+
+We can solve this by adding descriptive text or another visual indicator instead of relying on color alone.
+
+Similarly, if an interaction works only when the mouse hovers over an element, keyboard and touch users may not be able to access it.
+
+Small text, weak contrast, unclear labels, and invisible focus indicators can also make an application difficult to use.
+
+Accessible design improves the clarity and reliability of the interface for a wide range of users.
+
+When designing an application, consider keyboard navigation, screen readers, browser zoom, different contrast needs, reduced motion, and different interaction methods.
+
+Use semantic HTML and provide controls with clear accessible names.
+
+Accessibility is not an optional improvement. It is part of product quality.
 
 ### Responsive Behavior
 
-Start by identifying the content that must remain available on a narrow screen. A wide data table might become a horizontally scrollable region, a carefully selected set of stacked fields, or a compact list with a detail view. A sidebar might become a menu or a bottom navigation pattern, depending on the product. The breakpoint should be chosen when the layout no longer serves the content—not because a device brand has a particular screen width. Test the actual content at different widths so long names, translated labels, and error messages do not break the design.
+Another important principle is to design interfaces that adapt to different screen sizes.
 
-Responsive design is not merely shrinking a desktop layout. Decide how content should reflow, reorder, wrap, hide, or move into a different navigation pattern at different widths. The content and task should determine the layout—not the screenshot dimensions alone.
+Responsive design is not simply shrinking a desktop layout until it fits on a mobile screen. The structure and presentation of information may need to change depending on the available space.
+
+For example, a wide data table might become a horizontally scrollable region, a carefully selected set of stacked fields, or a compact list with a separate detail view.
+
+A sidebar might become a menu or bottom navigation, depending on the application's purpose.
+
+We should identify the content that must remain accessible on a narrow screen and decide how the layout should reflow, reorder, wrap, or move into another navigation pattern.
+
+Breakpoints should be chosen when the layout no longer serves the content, not simply because a particular device brand uses a certain screen width.
+
+Always test actual content at different widths. Long product names, translated labels, and validation messages can reveal problems that short placeholder text might hide.
 
 ## From Design Philosophy to Design Language
 
-The philosophy now gives us principles, but principles alone are not enough to implement several pages consistently. Developers and designers also need a shared vocabulary. That vocabulary is the design language. It turns abstract ideas such as “calm”, “clear”, “trustworthy”, or “high priority” into recurring choices about color roles, type hierarchy, spacing, icons, control behavior, and feedback. The language is what allows a button on the settings page to feel related to a button on the product page, even though the two pages solve different tasks.
+We now have a set of principles that explain how the application should behave and what it should prioritize.
 
-A **design language** is the shared visual and interaction vocabulary of a product. It makes separate pages feel as though they belong to the same application.
+However, principles alone are not enough to implement several pages consistently.
 
-It typically describes:
+Developers and designers also need a shared vocabulary that translates abstract ideas into concrete design decisions.
+
+For example, a product might aim to feel calm, clear, trustworthy, or professional. These qualities need to be reflected in recurring choices about color, typography, spacing, icons, component behavior, and interaction feedback.
+
+This shared vocabulary is called a **design language**.
+
+A design language is the collection of visual and interaction rules that gives a product a recognizable and consistent identity.
+
+It ensures that separate pages feel as though they belong to the same application, even when they serve different purposes.
+
+A design language typically describes:
 
 - Color roles and palettes.
 - Typography families, sizes, weights, and line heights.
-- Spacing scale and layout grid.
+- Spacing scales and layout grids.
 - Border radii, borders, shadows, and elevation.
-- Icon style and illustration rules.
+- Icon styles and illustration rules.
 - Component appearance and behavior.
 - Interaction states, motion, and feedback.
 - Writing style and terminology used by the interface.
 
-A design language is more than a collection of colors. It connects appearance, behavior, and product identity.
+A design language is therefore more than a collection of colors. It connects appearance, behavior, and product identity.
 
-A useful design language also defines what not to do. It may say that danger color is reserved for destructive or critical states, that a primary button should not be used for every secondary action, or that motion should clarify a state change rather than decorate the page. These constraints keep individual implementation decisions from drifting apart as the product grows.
+It should also define what not to do.
+
+For example, danger colors might be reserved for destructive actions or critical states. Primary buttons should not be used for every secondary action, and animations should clarify changes in the interface rather than simply decorate the page.
+
+These constraints prevent individual design decisions from drifting apart as the application grows.
 
 ### Define Semantic Color Roles
 
-Avoid choosing a different arbitrary color for every component. Define roles such as page background, surface, primary text, muted text, border, primary action, danger, warning, and success.
+Instead of choosing an arbitrary color for every component, we should define a set of color roles.
 
-The role matters more than the raw color value. A component should ask for `--color-text-muted`, not decide for itself that it should use a particular shade of gray.
+For example, an application might use:
+
+- Page background.
+- Surface background.
+- Primary text.
+- Muted text.
+- Border.
+- Primary action.
+- Danger.
+- Warning.
+- Success.
+
+The role matters more than the raw color value.
+
+A component should request `--color-text-muted` rather than deciding independently that it needs a particular shade of gray.
+
+This makes it easier to maintain a consistent appearance and adapt the design when the product's theme changes.
 
 ### Define Typography
 
-Decide which styles are used for page titles, section headings, body text, labels, helper text, and small metadata. Typography should support reading and scanning. Use a limited scale rather than inventing a new font size for every element.
+Typography is another important part of the design language because it determines how information is presented and how easily users can read it.
+
+We should establish a limited set of typography styles for page titles, section headings, body text, labels, helper text, and small metadata.
+
+Each style should have a defined font size, weight, and line height.
+
+For example, a page title might use a larger font size and stronger weight, while supporting information uses a smaller and more subtle style.
+
+Using a consistent typography scale prevents every component from introducing its own unrelated text sizes.
 
 ### Define Spacing and Shape
 
-A spacing scale helps keep layouts consistent. For example, a product might use a base spacing unit and a small set of multiples for gaps, padding, and section separation. Likewise, define a small set of radii and border treatments instead of styling every card independently.
+Spacing plays an important role in visual hierarchy because it determines how elements relate to each other.
+
+Imagine a form where some inputs are separated by 8 pixels, others by 13 pixels, and others by 21 pixels without any clear reason.
+
+The layout may still work, but it will be difficult to maintain a consistent appearance.
+
+Instead, we can define a spacing scale and reuse its values for gaps, padding, and section separation.
+
+The same principle applies to shapes. We should define a small set of border radii, border styles, and shadows rather than styling every card and button independently.
+
+This gives the application a more unified appearance.
 
 ## Design Tokens
 
-Once the design language has been agreed, repeated values should be stored rather than copied manually. That is the role of design tokens. A token gives a design decision a name, so components can refer to the purpose of a value rather than repeat its raw value. If the brand color changes, or the spacing scale needs to be adjusted, the developer can change the token in one place and let the components inherit the decision.
+Once the design language has been established, we need a way to store its repeated values so that they can be reused throughout the application.
 
-Design tokens are named values that store design decisions. They make global adjustments easier and connect design documentation with code.
+This is the purpose of **design tokens**.
 
-A simple token layer can be written using CSS custom properties:
+Design tokens are named values that represent design decisions. Instead of repeating raw colors, spacing measurements, or font sizes throughout our CSS, we assign meaningful names to them.
+
+This makes global changes easier because we can update a token in one place and allow the components using it to inherit the new value.
+
+A simple token layer can be implemented using CSS custom properties.
+
+For example:
 
 ```css
 :root {
@@ -203,29 +378,53 @@ body {
 }
 ```
 
-These values are an example, not a universal palette. Choose and test tokens for the product's brand, content, and accessibility needs. A token should have a meaningful name that describes its role.
+These values are examples rather than a universal palette. The actual colors, typography, and spacing should be selected and tested according to the product's identity, content, and accessibility requirements.
+
+The important detail is how we use the tokens.
+
+For example, the `.card` class does not define its own background color or padding using arbitrary values. Instead, it references the design tokens that represent those decisions.
+
+If we later decide to change the card spacing or surface color, we can update the token rather than searching through every component.
 
 ### Primitive and Semantic Tokens
 
-A larger system may separate:
+In a larger design system, tokens may be organized into different levels.
 
-- **Primitive tokens:** raw values such as a particular blue or a spacing measurement.
-- **Semantic tokens:** roles such as primary action, subtle border, or page background.
-- **Component tokens:** values specific to a component, such as button height or card padding.
+**Primitive tokens** represent raw values, such as a particular shade of blue or a spacing measurement.
+
+**Semantic tokens** assign meaning to those values, such as primary action, subtle border, or page background.
+
+**Component tokens** represent values specific to a particular component, such as button height or card padding.
 
 This separation allows the product's theme to change without rewriting component styles.
 
-For example, a primitive token might represent a particular shade from the brand palette. A semantic token such as `--color-action-primary` gives that shade a role. The button can use the semantic token without knowing the brand's original color value. In a dark theme, the semantic token can resolve to a different primitive value while the component remains unchanged. This is the difference between naming a color and naming what the color means in the interface.
+For example, a primitive token might represent a specific blue from the brand palette. A semantic token such as `--color-action-primary` assigns that color a role.
 
-Tokens also improve communication between design and code. A designer can document a spacing scale or surface role, and the developer can map it to CSS custom properties. The CSS shown here is a small, practical starting point; larger products may store tokens in a design tool or shared package and generate platform-specific outputs. The principle stays the same: repeated design decisions should be named, documented, and reused.
+The button can then use the semantic token without knowing the original color value.
+
+In dark mode, the semantic token can point to a different primitive value while the button component remains unchanged.
+
+This illustrates an important distinction: we should name values according to what they represent in the interface, not only according to their appearance.
+
+Tokens also improve communication between design and development. A designer can document a spacing scale or surface role, and the developer can map it to CSS custom properties.
+
+The CSS shown here is a practical starting point. Larger products may store tokens in a design tool or shared package and generate platform-specific outputs.
+
+Regardless of the implementation, the principle remains the same: repeated design decisions should be named, documented, and reused.
 
 ## From Design Language to a Design System
 
-A design language becomes more useful when it is paired with implemented, documented components and guidance. That broader collection is a design system. It connects the principles behind the product to the reusable code that developers use every day. A design system is not created all at once; it grows as repeated patterns appear, are reviewed, documented, and adopted across the product.
+A design language gives us shared visual and interaction rules, while design tokens allow us to store those rules as reusable values.
 
-A design system is the broader set of documented principles, tokens, components, patterns, and guidance used to build consistent products.
+However, a complete application needs more than colors, typography, and spacing. We also need reusable components, page patterns, documentation, and guidelines that explain how everything should work together.
 
-It can include:
+This broader collection is called a **design system**.
+
+A design system is the organized collection of principles, design tokens, components, patterns, and documentation used to build consistent products.
+
+It connects the decisions made during design to the actual components developers use when building the application.
+
+A design system may include:
 
 - Design philosophy and product principles.
 - Design language and design tokens.
@@ -234,13 +433,21 @@ It can include:
 - Accessibility and content guidelines.
 - Documentation, examples, and versioning.
 
-A design system is not just a folder of buttons. It explains when and how to use components, what variants exist, and how components should behave.
+A design system is therefore much more than a folder containing buttons and cards. It explains when and how to use each component, which variants are available, and how those components should behave.
 
-A component library without usage guidance can still produce inconsistent interfaces. One developer might use a warning badge to communicate stock status; another might use the same component for a navigation label; a third might invent a new red badge. Documentation explains the intended meaning of each variant, which component to choose for a particular task, and what states must be supported. The system therefore contains both implementation and shared decisions.
+For example, a component library may contain a `StatusBadge` component. However, without usage guidance, one developer might use it for stock status, another might use it for navigation labels, and someone else might introduce a completely different badge for the same purpose.
+
+Documentation establishes the intended meaning of each variant and explains when the component should be used.
+
+The system therefore contains both the implementation and the shared decisions behind it.
 
 ### Build Reusable UI Components
 
-A reusable button should support a small, intentional API. For example:
+Let's create a reusable button component using React and TypeScript.
+
+A button should support a small number of intentional variants rather than allowing every part of the application to invent its own appearance.
+
+For example:
 
 ```tsx
 import type { ButtonHTMLAttributes } from 'react';
@@ -265,31 +472,61 @@ export function Button({
 }
 ```
 
-The component preserves native button attributes such as `disabled`, `aria-label`, and `onClick`. The `type` default prevents an ordinary button from accidentally submitting a surrounding form. When a form should submit, explicitly pass `type="submit"`.
+Let's understand the structure.
 
-Do not make a component accept every possible customization. A component API should be flexible enough for real use but predictable enough to maintain.
+The `ButtonProps` type extends `ButtonHTMLAttributes<HTMLButtonElement>`. This means our component supports the standard attributes and behaviors of an HTML button, such as `disabled`, `aria-label`, and `onClick`.
 
-The native button attributes are extended because they are part of the browser's expected button behavior. That is usually more robust than re-creating attributes such as `disabled` and `onClick` manually. At the same time, the `variant` prop is intentionally limited to a few named options. This prevents every caller from inventing a slightly different color or style. A good reusable component API provides the flexibility that the product needs while preserving the consistency the design system is meant to create.
+We then introduce a `variant` prop that allows the component to use one of three predefined styles.
+
+The default variant is `primary`, so we do not need to specify it every time we use the component.
+
+We also set the default button type to `button`. This is important because an HTML button placed inside a form behaves as a submit button by default. By explicitly setting the default to `button`, we avoid accidentally submitting forms when the component is used for ordinary actions.
+
+When we actually need a submit button, we can pass `type="submit"`.
+
+We also preserve the standard `className` prop so that a component can receive additional styling when necessary.
+
+The important idea is not to make a component accept every possible customization. Its API should provide enough flexibility for real use while remaining predictable and consistent.
+
+A reusable button component should make it easier to maintain the product's button styles and behavior, not create another source of visual inconsistency.
 
 ## What Is a Design Template?
 
-Components solve local interface problems; templates solve page-level structure. A dashboard, a listing page, and a data-entry form have different information patterns, but repeated pages of the same type often share a recognizable arrangement. A template provides that arrangement so each new page does not begin from a blank canvas. It also helps users predict where headings, filters, actions, and main content will appear.
+Components solve local interface problems, but we also need a way to organize complete pages.
 
-A **design template** is a reusable page-level structure for a common type of screen. It describes where the main regions of a page belong and how they relate. It is not the same as a design language or a component library.
+For example, a dashboard, a listing page, and a data-entry form have different information patterns. However, repeated pages of the same type often share a recognizable structure.
 
-Examples of page templates:
+A dashboard may contain a page heading, summary cards, charts, and recent activity. A listing page may contain search, filters, a result count, and a table. A form page may contain grouped inputs, helper text, validation messages, and submission actions.
 
-- **Dashboard template:** top bar, sidebar, page heading, filters, summary cards, charts, and activity list.
-- **Listing template:** page title, search and filters, result count, list or grid, pagination, and empty state.
-- **Detail template:** back navigation, primary content, metadata, related information, and main actions.
-- **Form template:** page heading, grouped fields, helper text, validation messages, and submit/cancel actions.
-- **Landing-page template:** hero section, value proposition, feature sections, proof points, and call to action.
+Instead of starting every page from an empty layout, we can define reusable page structures.
 
-A template is a starting structure. It should adapt to its content and user task rather than forcing every page into the same shape.
+These structures are called **design templates**.
 
-A template should not be treated as a rigid screenshot. If a particular listing has no filters, it should not display an empty filter area merely to preserve a layout. If a detail page needs a prominent warning, the template should allow that content to receive the necessary emphasis. The reusable structure provides consistency; the content and user task determine how it is filled.
+A design template is a reusable page-level structure that describes where the main regions of a page belong and how they relate.
+
+It is not the same as a design language or a component library.
+
+Common examples include:
+
+**Dashboard Template:** Usually contains a top bar, sidebar, page heading, filters, summary cards, charts, and an activity list.
+
+**Listing Template:** Usually contains a page title, search and filters, a result count, a list or grid, pagination, and an empty state.
+
+**Detail Template:** Usually contains back navigation, primary content, metadata, related information, and main actions.
+
+**Form Template:** Usually contains a page heading, grouped fields, helper text, validation messages, and submit or cancel actions.
+
+**Landing Page Template:** Usually contains a hero section, value proposition, feature sections, supporting evidence, and a call to action.
+
+A template provides a starting structure, but it should adapt to its content and user task rather than forcing every page into exactly the same shape.
+
+For example, if a particular listing has no filters, we should not display an empty filter area just to preserve the layout. Similarly, if a detail page contains an important warning, the template should allow that information to receive the necessary emphasis.
+
+The reusable structure provides consistency, while the content and user task determine how it is filled.
 
 ### Template vs. Component vs. Design System
+
+These concepts are related, but each has a different responsibility.
 
 | Concept | Main question | Example |
 |---|---|---|
@@ -298,25 +535,67 @@ A template should not be treated as a rigid screenshot. If a particular listing 
 | Design tokens | How are those decisions stored as reusable values? | `--color-primary`, `--space-4`. |
 | Component | What reusable UI building block do we implement? | `Button`, `TextField`, `Modal`, `Card`. |
 | Page template | How are common page regions organized? | Dashboard layout with sidebar and content area. |
-| Design system | How do all of these rules, components, and patterns work together? | Documented tokens, components, templates, and usage rules. |
+| Design system | How do all these rules, components, and patterns work together? | Documented tokens, components, templates, and usage rules. |
+
+Understanding these distinctions helps us decide which parts of the interface should be reused and at what level.
 
 ## Translate a Design into React
 
-This is the point where the design process becomes a front-end implementation plan. Resist the temptation to open the editor and immediately create a `Card` component because you see a rectangle in a screenshot. First identify the page's content regions and the repeated behaviors. Then decide which patterns should become components, which styles belong in tokens, and which layout decisions belong in the page template. This makes the React component tree reflect the product's meaning instead of mirroring every decorative layer in a design file.
+We now have the main concepts needed to create a consistent interface. The next step is translating those decisions into an actual React application.
 
-Use a repeatable process:
+This is where the design process becomes a front-end implementation plan.
 
-1. **Understand the task:** identify the user, their goal, and what success looks like.
-2. **Map the content:** group related information and identify the primary action.
-3. **Sketch the structure:** create a rough wireframe before selecting fine visual details.
-4. **Define the visual language:** choose tokens for color, type, spacing, shape, and interaction.
-5. **Select a page template:** choose or adapt a structure that fits the task.
-6. **Identify components:** separate repeated patterns into components with clear props.
-7. **Implement responsive behavior:** decide how regions adapt to different widths.
-8. **Check accessibility:** test keyboard operation, labels, focus, contrast, and screen-reader meaning.
-9. **Validate with users or peers:** observe where people hesitate or misunderstand the interface and revise it.
+It is tempting to open the editor and immediately create a `Card` component because we see a rectangle in a design.
 
-A useful React structure for a dashboard might be:
+However, we should first understand the page's purpose, identify its content regions, and recognize which patterns are repeated.
+
+Then we can decide which parts should become components, which styles belong in design tokens, and which structural decisions belong in a page template.
+
+This makes the React component tree reflect the application's meaning rather than simply reproducing every decorative layer of a design file.
+
+A practical implementation process looks like this:
+
+**1. Understand the task**
+
+Identify the intended user, their goal, and what a successful interaction looks like.
+
+**2. Map the content**
+
+Group related information and identify the primary action.
+
+**3. Sketch the structure**
+
+Create a rough wireframe before deciding on detailed visual styles.
+
+**4. Define the visual language**
+
+Choose tokens for color, typography, spacing, shape, and interaction states.
+
+**5. Select a page template**
+
+Choose or adapt a structure that supports the user's task.
+
+**6. Identify components**
+
+Separate repeated patterns into components with clear responsibilities and well-defined props.
+
+**7. Implement responsive behavior**
+
+Decide how the different sections should adapt to available screen sizes.
+
+**8. Check accessibility**
+
+Test keyboard operation, labels, focus, contrast, and screen-reader meaning.
+
+**9. Validate the result**
+
+Observe where users hesitate, misunderstand the interface, or struggle to complete their tasks. Use those observations to improve the design.
+
+### Organizing a React Dashboard
+
+Let's imagine that we are implementing a dashboard for our management application.
+
+Its component structure might look like this:
 
 ```text
 App
@@ -331,22 +610,45 @@ App
         └── DataTable
 ```
 
+Each component represents a meaningful part of the interface.
+
+`DashboardLayout` provides the overall page structure. `Sidebar` and `Topbar` handle navigation and common controls, while `DashboardPage` combines the content specific to the dashboard.
+
+Inside it, `SummaryGrid` organizes the summary cards, and `ActivityPanel` and `DataTable` display additional information.
+
 The component tree should reflect meaningful regions and responsibilities. It does not need to match every single visual wrapper in the design file.
 
-A helpful test is to ask whether a component has a stable role and a useful contract. `SummaryCard` may be reusable because several pages display a metric with a label, value, and optional trend. A wrapper that exists only to add one margin value may be better represented by CSS unless it carries a meaningful layout responsibility. Good component boundaries make changes safer: when the button style changes, it can be updated in one place; when a page's information hierarchy changes, the page composition can be adjusted without rewriting the entire design system.
+A helpful test is to ask whether a component has a stable role and a useful interface.
+
+For example, `SummaryCard` may be reusable because several pages display a metric with a label, value, and optional trend.
+
+A wrapper that exists only to add one margin value may be better represented by CSS unless it has a meaningful layout responsibility.
+
+Good component boundaries make changes safer. When the button style changes, we can update it in one place. When the information hierarchy of a dashboard changes, we can adjust the page composition without rewriting the entire design system.
 
 ## Responsive Layout Fundamentals
 
-Responsive layout is a content problem before it is a CSS syntax problem. Ask how the information should be grouped when the available width is reduced. Flexbox is useful when items flow along one primary axis, such as a toolbar. Grid is useful when the layout needs rows and columns, such as a set of dashboard cards. Normal document flow remains the best default for paragraphs and content sections because the browser already knows how to make text flow as the available space changes.
+A consistent design system should work across different screen sizes.
 
-Use the CSS layout tool that matches the problem:
+However, responsive layout is a content problem before it becomes a CSS syntax problem.
 
-- Flexbox for arranging items in one direction, such as a toolbar or button group.
-- Grid for rows and columns, such as a dashboard card layout.
-- Normal document flow for most text and content sections.
-- Media queries when a layout needs to change at a certain viewport width.
+We first need to understand how information should be grouped and displayed when the available width changes.
 
-Example responsive grid:
+For example, a dashboard may display four summary cards in one row on a wide screen. On a smaller screen, those cards may need to appear in two columns or become vertically stacked.
+
+Similarly, a toolbar might display its controls horizontally on desktop but allow them to wrap or stack on smaller screens.
+
+CSS provides several layout tools that help us handle these situations.
+
+**Flexbox** is useful when arranging items primarily in one direction, such as a toolbar, navigation bar, or button group.
+
+**Grid** is useful when creating layouts with rows and columns, such as a dashboard containing multiple summary cards.
+
+**Normal document flow** remains the best default for most text and content sections because the browser already knows how to make content flow as the available space changes.
+
+**Media queries** allow us to change layout behavior when the viewport reaches a certain width.
+
+For example, consider the following responsive grid:
 
 ```css
 .summary-grid {
@@ -368,37 +670,41 @@ Example responsive grid:
 }
 ```
 
-Start with a layout that works on narrow screens, then enhance it as more space becomes available. Avoid fixed widths that cause horizontal scrolling. Test real content, not only placeholder text.
+On narrow screens, the cards appear in a single column. Once enough horizontal space becomes available, the layout changes to two columns, and on wider screens it displays four columns.
 
-Do not assume that a layout is responsive because the cards become narrower. The order of content, the way actions are reached, the size of touch targets, and the readability of tables all affect usability. Test long product names, large numbers, missing images, and validation messages. These realistic cases expose problems that a short placeholder label will hide.
+This is an example of a mobile-first approach.
+
+We begin with a layout that works on narrow screens and gradually enhance it as more space becomes available.
+
+Avoid fixed widths that introduce unnecessary horizontal scrolling, and always test real content instead of relying only on placeholder text.
+
+Do not assume that a layout is responsive simply because its cards become narrower. The order of information, accessibility of actions, size of touch targets, and readability of tables all affect usability.
+
+Test long product names, large numbers, missing images, and validation messages. These realistic cases reveal problems that short placeholder labels might hide.
 
 ## Accessibility in Everyday Components
 
-Accessibility is the point where visual design, behavior, and semantic HTML meet. A visible button should actually be a button so it can receive keyboard focus and respond to standard activation keys. A navigation area should be identified as navigation, and each form input should have a label that can be announced by assistive technology. Semantic elements give browsers and assistive tools information that styling alone cannot provide.
+Accessibility is where visual design, interaction behavior, and semantic HTML come together.
 
-Use semantic HTML first. A button should be a `<button>`, navigation should be inside `<nav>`, and the main page content should normally be inside `<main>`. Use ARIA only when native HTML does not express the required role or state.
+A visible button should actually be a `<button>` so that it can receive keyboard focus and respond to standard activation keys. Navigation should be represented using `<nav>`, and form inputs should have labels that can be understood by assistive technologies.
 
-For forms:
+Semantic HTML gives browsers and assistive tools information that styling alone cannot provide.
 
-- Connect each input to a visible label.
-- Explain expected formats and constraints.
-- Associate validation messages with the relevant control.
-- Do not communicate errors using color alone.
-- Keep focus visible and logical after submission or validation.
+Use semantic HTML first. A button should be a `<button>`, navigation should be inside `<nav>`, and the main page content should normally be inside `<main>`.
 
-For interactive controls:
+Use ARIA attributes when native HTML does not adequately express the required role or state.
 
-The `:focus-visible` example provides a visual indicator when keyboard users move through interactive controls. Removing the browser outline without replacing it makes the interface harder to operate. The reduced-motion rule is another example of respecting user preferences: transitions can make an interface feel responsive, but people who request reduced motion should not be forced to experience unnecessary animation. Accessibility should be tested alongside the visual design because it is part of whether the interface works at all.
+For forms, each input should have a visible label, and the interface should explain expected formats and constraints. Validation messages should be associated with the relevant controls, while errors should never be communicated using color alone.
 
-Also test the actual interaction, not only the markup. Can a keyboard user open and close the menu? Does focus move somewhere sensible after a dialog closes? Is an error announced when a form submission fails? Do status messages make sense without their colors? These questions help turn general accessibility advice into concrete acceptance criteria.
+Focus should also remain visible and follow a logical order, especially after form submission or validation.
 
-- Ensure keyboard operation.
-- Use visible focus styles.
-- Give icon-only controls accessible names.
-- Respect reduced-motion preferences.
-- Avoid custom controls when a native HTML element already provides the behavior.
+Interactive controls need similar attention. We should ensure that keyboard users can access every action, icon-only buttons have accessible names, and focus indicators are not removed without providing an appropriate replacement.
 
-Example focus style:
+Another important consideration is reduced motion. Transitions and animations can make an interface feel responsive, but some users prefer to minimize movement.
+
+We can respect this preference using the `prefers-reduced-motion` media query.
+
+For example:
 
 ```css
 :where(button, a, input, select, textarea):focus-visible {
@@ -418,47 +724,133 @@ Example focus style:
 }
 ```
 
+The first rule provides a visible focus indicator when keyboard users navigate through interactive controls.
+
+The second rule reduces animations and transitions for users who have requested reduced motion through their operating system or browser settings.
+
+Accessibility should be tested alongside visual design because it directly affects whether the interface works for different people.
+
+Also test actual interactions rather than only the markup. Can a keyboard user open and close the menu? Does focus move somewhere sensible after a dialog closes? Is an error announced when form submission fails? Do status messages remain understandable without their colors?
+
+These questions turn general accessibility principles into concrete implementation requirements.
+
 ## Workshop Challenge: Design a Management Dashboard
+
+Now it is time to apply what we have learned.
 
 Design and implement a responsive dashboard for a small store, learning platform, or service business.
 
-**Part A — Product thinking**
+The purpose of this exercise is not simply to create an attractive page. You should apply the complete design process, starting with the user's needs and finishing with reusable React components.
+
+### Part A: Product Thinking
+
+Start by understanding the application and its intended users.
 
 1. Write a short description of the user and their main task.
 2. Identify the three most important pieces of information.
 3. Identify the primary action and two secondary actions.
-4. Write five design principles for the product.
+4. Write five design principles that should guide the product.
 
-**Part B — Design language**
+For example, a store employee may need to check product quantities quickly, identify low-stock products, and register sales without navigating through several unrelated pages.
+
+Use these tasks to determine what the dashboard should prioritize.
+
+### Part B: Design Language
+
+Once the main requirements are clear, define the visual rules for the application.
 
 1. Define color roles for page, surface, text, muted text, border, primary action, danger, and success.
 2. Define a typography scale and spacing scale.
 3. Define button variants, card styles, form field styles, and status indicators.
 4. Add focus, hover, disabled, loading, and error states.
 
-**Part C — Templates and implementation**
+Implement these decisions using CSS custom properties so the application can reuse them consistently.
+
+### Part C: Templates and Implementation
+
+Now translate the design into React.
 
 1. Sketch a dashboard template with navigation and a main content area.
 2. Build `AppShell`, `Sidebar`, `PageHeader`, `Button`, `Card`, and `StatusBadge` components.
 3. Render summary cards from typed data.
-4. Make the layout responsive with Grid and Flexbox.
+4. Make the layout responsive using Grid and Flexbox.
 5. Test the interface using only a keyboard.
 
-## Professional Recap
+### Challenge Goal
 
-- Design philosophy explains the principles behind product decisions.
-- Design language is the shared visual and interaction vocabulary.
-- Tokens give reusable names to design values.
-- A design system includes principles, tokens, components, patterns, and documentation.
-- A page template is a reusable page-level structure, not a button library or color palette.
-- React components should map to meaningful responsibilities, not every decorative wrapper.
-- Accessibility, responsive behavior, and interaction states are part of the design—not last-minute fixes.
-- A strong interface is judged by whether users can complete their tasks, not only by its appearance.
+By completing this exercise, you will practise understanding user requirements, establishing a design philosophy, defining reusable design tokens, creating a consistent component library, organizing pages using templates, and implementing responsive interfaces.
+
+Try to complete the design process yourself before looking for a complete solution.
+
+Focus on explaining why you made each design decision, not simply whether the final page looks attractive.
+
+## Workshop Recap
+
+In this workshop, we moved beyond implementing application functionality and explored how to create interfaces that are consistent, understandable, and accessible.
+
+Let's review the main ideas and how they connect.
+
+### Design Philosophy and User Experience
+
+A design philosophy establishes the principles that guide decisions throughout a product.
+
+UX focuses on the complete experience of using the application, while UI represents the interactive surface through which users perform their tasks. Visual design determines how information and controls are presented, and front-end development implements the resulting interface.
+
+A good design begins with understanding the user's needs rather than choosing colors or animations immediately.
+
+### Design Language and Design Tokens
+
+A design language defines the shared visual and interaction vocabulary of a product.
+
+It establishes rules for color, typography, spacing, shapes, icons, and component behavior.
+
+Design tokens store repeated design decisions as named values, allowing components to reuse them consistently and making global changes easier.
+
+### Components, Templates, and Design Systems
+
+Reusable components provide consistent building blocks such as buttons, cards, forms, and status indicators.
+
+Page templates organize these components into reusable page-level structures.
+
+A design system brings everything together through documented principles, tokens, components, templates, and usage guidelines.
+
+### Implementation and Quality
+
+React components should represent meaningful responsibilities rather than every decorative wrapper in a design.
+
+Responsive layouts should adapt to the content and user task, while accessibility should influence both the visual presentation and interaction behavior from the beginning.
+
+A successful interface is not judged only by its appearance. It must also help users complete their tasks reliably.
 
 ### Self-Check
 
-Can you explain the difference between a design language and a design template? Can you implement a token-based theme? Can you describe why a dashboard uses a page shell and reusable cards? Can you identify accessibility states before coding? If not, revisit the matching sections.
+Before moving to the next workshop, make sure you can answer these questions:
+
+1. What is the difference between UX, UI, and visual design?
+2. What is a design philosophy, and why do we need one?
+3. What is visual hierarchy, and how does it improve an interface?
+4. What is the difference between a design language and a design system?
+5. What are design tokens, and why are they useful?
+6. What is the difference between primitive and semantic tokens?
+7. What is the difference between a reusable component and a page template?
+8. Why should React components represent meaningful responsibilities?
+9. When should we use Flexbox, Grid, and normal document flow?
+10. Why should accessibility be considered from the beginning of the design process?
+
+If you can answer these questions and complete the management dashboard challenge, you have understood the main concepts of this workshop.
 
 ## How This Leads to Workshop 6
 
-A clear design language and reusable templates give the application a consistent visual foundation. They do not, by themselves, guarantee that the product is reliable, secure, fast, or easy for another developer to maintain. Workshop 6 takes the interface we have designed and asks how to deliver it professionally: organize the code as it grows, validate data, test user behavior, measure performance, protect sensitive operations, and deploy the production build.
+A clear design language and reusable templates give our application a consistent visual foundation. However, they do not guarantee that the product is reliable, secure, fast, or easy for another developer to maintain.
+
+Imagine that we have completed our management application. It contains several pages, reusable components, a consistent design system, and responsive layouts.
+
+The application looks good and its main features work, but we still need to consider what happens when users submit invalid information, when an API request fails, when the application contains a large amount of data, or when it is deployed to a production environment.
+
+We also need to think about how other developers will understand and maintain the code as the project grows.
+
+These concerns introduce another important stage of front-end development: preparing an application for real-world use.
+
+In **Workshop 6**, we will explore professional React development practices, including project organization, form validation, testing, performance optimization, error handling, security considerations, and production deployment.
+
+This will take us from building an application that works and looks good to delivering one that is reliable, maintainable, and ready for real users.
