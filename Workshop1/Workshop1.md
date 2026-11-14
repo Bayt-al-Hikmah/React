@@ -1,152 +1,449 @@
 # Workshop 1: React Foundations and Modern Tooling
 
-This first workshop answers a simple question: what actually happens between opening a browser page and seeing a React interface? Before building complicated screens, we need a reliable mental model of the tools and the rendering process. Think of a product dashboard that begins as an empty page. Vite creates the project environment, the browser loads its HTML entry document, React mounts the application, and components describe the content that appears. Each later workshop will add behavior to this foundation.
+In this first workshop, we will explore React from the ground up. Before writing any code, we need to understand what React is, why developers use it, and how it helps us build user interfaces. Once we understand these ideas, we will prepare our development environment, create our first React project, and explore the files that make it work.
+
+After becoming familiar with the project structure, we will start building our own components. We will learn how to pass information between them and, eventually, how to make them respond to user interactions using state.
+
+Throughout the workshop, we will use examples from a small stock management application, along with a simple counter that will help us put the concepts into practice. By the end, you should understand the basic structure of a React application and how its main parts work together. This knowledge will give us a solid foundation for the more advanced topics we will explore in the following workshops.
 
 ## Objectives
 
 By the end of this workshop, you should be able to:
 
-- Explain what React does and when a client-side application is useful.
-- Create a modern React project with Vite and TypeScript.
-- Understand the purpose of `package.json`, npm scripts, `vite.config.ts`, and TypeScript configuration.
-- Navigate the generated project structure and identify the application entry point.
-- Write JSX in `.tsx` files and build function components.
-- Pass typed props and use state to make a component interactive.
+- Explain what React is and why we use it to build user interfaces.
+- Understand the difference between a traditional multi-page application and a single-page application.
+- Create a React project using Vite and TypeScript.
+- Understand the purpose of Node.js, npm, and Vite.
+- Navigate the generated project structure and identify its main application files.
+- Understand the role of `package.json`, `vite.config.ts`, and TypeScript configuration.
+- Write JSX inside `.tsx` files.
+- Create React function components and pass data to them using props.
+- Use state to make components interactive.
 
 ## What Is React?
 
-React is a library for building user interfaces from reusable components. A component receives data, describes what should appear on the screen, and can respond to user interactions. React coordinates rendering when that data changes.
+Let's start with a simple question: what is React, and why do we need it?
 
-It helps to think of a user interface as a visual description of application data. A stock dashboard, for example, may display a product name, its current quantity, and whether the quantity is low. If the quantity changes, the interface should display the new value and possibly change its status label. React gives us a way to describe how the interface should look for the current data, rather than writing separate instructions for every possible visual change.
+React is a JavaScript library used to build user interfaces. A user interface is everything we see and interact with when using an application. For example, a stock management application might contain a navigation menu, a list of products, a search bar, and buttons for adding or removing products. It might also display information such as available quantities and whether a product is currently in stock.
 
-React is not a complete front-end framework by itself. It does not automatically provide every application feature, such as routing, data fetching conventions, server rendering, or a deployment platform. We add appropriate tools when the application needs them. This is an important distinction for beginners: learning React means learning its component and rendering model, while building a complete product also requires decisions about navigation, data, styling, testing, hosting, and the browser platform.
+We can build all these elements using ordinary HTML, CSS, and JavaScript. However, as the application becomes larger, managing everything together becomes increasingly difficult. We need to keep track of the data, make sure the displayed information is correct, and update the right parts of the page whenever something changes.
+
+This is where React becomes useful. Instead of building the entire interface as one large piece of code, React allows us to divide it into smaller, independent parts called **components**. Each component is responsible for displaying a particular part of the interface, and we can combine these components to build the complete application.
+
+For example, rather than implementing an entire stock dashboard in one place, we could organize it into components like this:
+
+```text
+StockDashboard
+│
+├── Navigation
+├── DashboardHeader
+├── SearchBar
+├── ProductList
+│   ├── ProductCard
+│   ├── ProductCard
+│   └── ProductCard
+└── AddProductButton
+```
+
+Here, `StockDashboard` is the main component, but it does not need to handle every detail itself. It brings together smaller components, each with its own responsibility. The `ProductList`, for instance, handles the product list, while each `ProductCard` displays information about an individual product.
+
+This organization makes the application easier to understand because we can work on smaller parts instead of dealing with the entire interface at once. It also allows us to reuse components whenever we need them, which reduces unnecessary repetition.
+
+### A Simple Example: Displaying Product Stock
+
+Let's see why this component-based approach is useful when the information displayed by an application changes.
+
+Imagine that we have a product called "Keyboard" with 15 available units. Our stock dashboard should display something like this:
+
+```text
+Product: Keyboard
+Available Quantity: 15
+Status: In Stock
+```
+
+Now suppose someone purchases the remaining keyboards, bringing the quantity down to zero. Naturally, we want the interface to reflect this change:
+
+```text
+Product: Keyboard
+Available Quantity: 0
+Status: Out of Stock
+```
+
+With ordinary JavaScript, we could find the corresponding HTML elements and manually update their content whenever the quantity changes. This works, but as the application grows and many different values can change, keeping track of all these updates becomes difficult.
+
+React gives us another way to approach the problem. Instead of writing instructions for every possible visual change, we describe what the interface should look like based on the current data. In our example, the application should display "In Stock" whenever the quantity is greater than zero and "Out of Stock" when the quantity reaches zero.
+
+React then takes care of updating the displayed information when the data changes. We do not have to manually search for the elements that need updating.
+
+This leads to one of the most important ideas in React:
+
+**We describe what the interface should look like based on the current data, and React takes care of updating the screen when that data changes.**
+
+Keep this idea in mind because it will help you understand almost everything we do throughout this workshop.
 
 ### Multi-Page Applications and Single-Page Applications
 
-In a traditional multi-page application, navigation commonly asks the server for a new HTML document. In a client-side single-page application (SPA), the browser initially loads the application shell, and JavaScript can update the visible view as the user navigates. A routing library manages the relationship between the URL and the displayed page.
+Now that we understand why React is useful for building interfaces, let's look at how websites handle navigation between different pages.
 
-Neither approach is automatically better in every situation. Server-rendered pages can be simple, accessible, and effective for content-focused sites. A client-side application can provide rich interactions and persistent application state. Rendering strategy is an architectural decision, not a definition of React itself.
+Traditionally, many websites work as **multi-page applications (MPAs)**. When a user opens a page or clicks a link to visit another one, the browser sends a request to the server. The server responds with a new HTML document, and the browser loads that document. This process happens again whenever the user navigates to another page.
 
-Consider the difference from the user's point of view. A customer reading an article may benefit from a straightforward page delivered by the server. A staff member working in an inventory dashboard may spend several minutes filtering rows, opening details, editing quantities, and moving between related screens. A client-side application can make those repeated interactions feel continuous because the browser can update the relevant view without requesting a new document each time. The choice should follow the product's needs, not a belief that every modern website must be an SPA.
+A **single-page application (SPA)** approaches navigation differently. When the user first opens the application, the browser loads an HTML document along with the JavaScript and CSS files needed to run it. After that, JavaScript can update the content displayed on the screen as the user moves between different sections, without requesting a completely new HTML document for every navigation.
 
-**Important:** React can be used inside an existing page, in a client-rendered SPA, or as part of a framework that supports server rendering. This course uses Vite to learn the client-side React model. For a production project requiring server rendering or an integrated full-stack architecture, evaluate a React framework as well.
+To understand the difference, imagine using our stock management application. We open the dashboard, navigate to the stock page, search for a product, open its details, and then return to the product list.
 
-### React's Main Ideas
+In a client-side SPA, the application can display these different views by updating its interface directly inside the browser. A routing library manages the navigation and determines which view should appear based on the current URL. As a result, the user can move between different sections without the browser having to load a completely new HTML document each time.
 
-React becomes easier to understand when its main ideas are treated as parts of one model rather than as a list of unrelated features. A component receives information, uses that information to describe a piece of the interface, and may receive events from the user. When the information changes, React calls the relevant components again and updates the browser DOM to match the new description. The following ideas explain the different parts of that process.
+This approach works particularly well for applications with many interactions, where users frequently move between different views. However, SPAs are not always the best solution. A traditional server-rendered website can be simpler and more suitable for content-focused websites, such as blogs or documentation pages.
 
-**Declarative UI:** In an imperative approach, you might search for a paragraph in the DOM, replace its text, find a button, add a CSS class, and then remember to undo those changes later. In React, you describe the paragraph and button for the current state. For example, you can say that a product row should show a warning badge when its quantity is below a threshold. When the quantity changes, React receives the new description and updates the rendered interface. You focus on what should be visible, while React coordinates the DOM updates.
+The choice depends on what we are building and how we want the application to work.
 
-**Components:** A component is a named unit of interface and behavior. A large dashboard can be composed from a page header, navigation, product table, filter form, and status badge. Each component should have a reason to exist: it might encapsulate a repeated visual pattern, a meaningful piece of behavior, or a page region with a clear responsibility. Components are not created merely to split every few lines of JSX; they are created to make the interface easier to understand, reuse, and change.
+**Important:** React is not limited to single-page applications. It can also be used inside an existing website or as part of a larger framework that supports server rendering. In this workshop, we will use Vite to learn how React works in a client-side application.
 
-**One-way data flow:** Information normally moves from a parent component to its children through props. A child receives what it needs to display, but it does not directly edit the parent's data. When the user clicks an action in the child, the child can call a callback supplied by the parent. The parent then decides how the data should change and passes the updated value back down. This may sound like an extra step, but it creates a predictable direction for data and makes it easier to locate the source of a change. Workshop 2 will turn this idea into practical component communication.
+## How Does a React Application Work?
+We now know what React does and why we use it. The next question is: what actually happens when we open a React application in the browser?
 
-**Rendering and committing:** When React renders a component, it calls the component function to calculate the JSX for the current props and state. React then compares that description with the previous one and commits the required changes to the browser DOM. This is why component functions should be pure: rendering should describe the UI, not perform unrelated work such as sending requests or manually changing DOM nodes. The internal reconciliation process helps React determine what needs updating, but it does not guarantee that every update changes only one DOM node or that performance is automatically perfect. Component design, data size, browser layout, and network work still matter.
+Unlike a simple HTML page, where the browser can directly display the elements written in the document, a React application needs to go through a few additional steps. The browser loads an HTML document, that document loads our JavaScript entry file, and React uses that file to start building the interface.
+
+During development, the process looks like this:
+
+```text
+1. The browser requests the HTML page.
+                 |
+                 v
+2. Vite serves the HTML document.
+                 |
+                 v
+3. The HTML document loads main.tsx.
+                 |
+                 v
+4. main.tsx starts the React application.
+                 |
+                 v
+5. React renders the App component.
+                 |
+                 v
+6. React updates the browser's DOM.
+                 |
+                 v
+7. The user sees the interface.
+```
+
+Let's walk through this process so that each step becomes clearer.
+
+When we open the application, the browser first requests the HTML document. This document provides the basic structure of the page and contains a reference to the JavaScript file responsible for starting React.
+
+During development, Vite acts as our local development server. It provides the HTML document and the other files needed by the application, including our JavaScript and CSS files.
+
+The HTML document then loads a file called `main.tsx`. This is the entry point of our React application. Its job is to connect React to the browser page and tell React which component should be displayed first.
+
+React starts by rendering that component, usually called `App`. It executes the component and uses the JSX it returns to determine what the interface should look like. From there, React takes care of displaying the necessary elements in the browser.
+
+To do this, React works with something called the **DOM**, or Document Object Model. The DOM is the browser's representation of the HTML page. React uses it to display the interface and apply the necessary updates when the application changes.
+
+Finally, the browser displays the result, and the user can start interacting with the application.
+
+This is the general process behind a React application. Now that we have an idea of what happens, we can prepare our environment and explore the files involved in each step.
 
 ## Prepare the Development Environment
 
-A React project runs in a browser, but its development tools run through Node.js. Node provides the environment in which npm and Vite execute; npm downloads the libraries the project depends on and runs the commands defined by the project. These tools do not replace the browser. They prepare and transform the files that the browser will eventually load. Understanding that boundary will help you make sense of terminal errors, browser errors, and build errors later in the course.
+Before creating our first React project, we need to prepare the tools we will use to develop it.
 
-Install a current supported Node.js release and npm. The current Vite guide lists Node.js `20.19+` or `22.12+` as supported minimum lines; newer supported LTS versions are suitable too. Check the Vite documentation when setting up a new machine because tool requirements can change.
+You might wonder why we need to install additional software when React applications run inside a browser. The reason is that the browser is only where users interact with the application. During development, we also need tools to create the project, install libraries, process our code, and prepare the application for deployment.
 
-Verify the installation:
+There are three tools we need to understand before getting started: Node.js, npm, and Vite.
+
+**Node.js** provides an environment that allows JavaScript to run outside the browser. This is important because many development tools, including Vite, use JavaScript and need an environment in which they can run.
+
+**npm** is a package manager that comes with the standard Node.js installation. It allows us to install libraries and tools required by our project. It also helps us run common project commands without having to remember the full commands behind them.
+
+**Vite** is a development and build tool. It provides a local development server while we are working on the application and prepares the files needed when we want to build it for production.
+
+These tools have different responsibilities, but they work together throughout the development process.
+
+### Install Node.js and npm
+
+Start by installing a current supported release of Node.js. The standard installation includes npm, so you do not need to install it separately.
+
+Vite currently requires Node.js 20.19+ or 22.12+, although some templates may require a newer version. Check the official Vite documentation when installing or updating your development environment.
+
+Once the installation is complete, open your terminal and run:
 
 ```bash
 node --version
 npm --version
 ```
 
-Use a code editor with TypeScript and ESLint support. React Developer Tools is useful for inspecting component trees, props, state, and renders in the browser.
+These commands ask Node.js and npm to display their installed versions. You should see a version number for each one. If the terminal reports that a command cannot be found, check that Node.js was installed correctly and is available in your system's PATH.
 
-## Create a React + TypeScript Project with Vite
+You should also have a code editor with TypeScript support so that you can write and organize your code. Visual Studio Code is a common choice.
 
-Scaffolding is the process of generating a project with a known starting structure. It saves time, but it does not mean that the generated files should remain mysterious. After running the commands, open the folder and inspect every top-level file. The aim is not to memorize the generated template; it is to learn which file starts the development server, which file configures the build, which file declares packages, and which file contains the first React component. We will connect those pieces one by one.
+## Create a React Project with Vite
 
-Create React applications with the official Vite React + TypeScript template:
+Now that our environment is ready, we can create our first React project.
+
+We could create every file manually and configure all the tools ourselves, but that would involve quite a bit of setup before we even get to write our first component. Instead, we will use Vite to prepare the starting project for us.
+
+This process is called **scaffolding**. It simply means generating a project with an initial folder structure and the basic configuration already in place.
+
+Since we want to use React with TypeScript, we will choose the React + TypeScript template. Open your terminal and run:
 
 ```bash
 npm create vite@latest my-react-app -- --template react-ts
+```
+
+Let's understand what this command does. The `npm create vite@latest` part runs the tool responsible for creating a new Vite project. The name `my-react-app` specifies the folder and project name, while `--template react-ts` tells Vite that we want the React + TypeScript template.
+
+After Vite finishes creating the project, move into its directory:
+
+```bash
 cd my-react-app
+```
+
+The project structure is now ready, but we still need to install the packages it depends on. Run:
+
+```bash
 npm install
+```
+
+npm reads the project's `package.json` file and downloads the required packages. Once the installation is complete, we can start the development server:
+
+```bash
 npm run dev
 ```
 
-Open the local URL shown in the terminal. Vite serves the project and updates the browser during development when source files change.
+The terminal will display a local address, usually similar to:
 
-To stop the development server, return to the terminal and press `Ctrl + C`.
+```text
+http://localhost:5173/
+```
 
-### Why Vite?
+Open this address in your browser, and you should see the default React application generated by Vite.
 
-Vite is a build tool. It provides a development server, fast module updates during development, and a production build process. It is not a React component library and does not replace React or TypeScript. Its job is to make the development cycle efficient and to prepare browser-ready assets when the application is ready to ship.
+Congratulations! Your first React project is now running.
 
-During development, Vite serves the source modules and uses the browser's module system together with its development transformations. When you edit a component, its development tooling can update the affected module without requiring a full page reload in many cases. This feedback loop is often called Hot Module Replacement or HMR. It lets you make a small change, see the result, and keep working quickly. When you run the production build, Vite follows a different path: it processes assets and creates the optimized files that will be deployed.
+When you want to stop the development server, return to the terminal and press `Ctrl + C`.
 
-The responsibilities are different:
+### Why Do We Use Vite?
+
+Now that we have created and started our project, let's understand why we used Vite in the first place.
+
+A React project needs more than the React library itself. We also need a development server to make the application available in the browser, tools to process our source files, and a way to prepare the final application for production. Vite brings these features together, allowing us to focus more on building the application and less on configuring the development environment.
+
+One particularly useful feature is **Hot Module Replacement (HMR)**. While developing, we frequently make changes to our code and need to see the results in the browser. Normally, this could require reloading the entire page. HMR allows Vite to update parts of the application when we change our code without always performing a full page reload.
+
+For example, imagine that you are editing a component and decide to change its heading or add a button. You save the file, and Vite updates the application so you can see the result almost immediately. This makes the development process faster and more comfortable.
+
+Vite also handles the production build. When the application is ready, it processes the project files and creates an optimized version that can be deployed to a server.
+
+It is worth remembering that React and Vite have different responsibilities. React is responsible for building the user interface, while Vite provides the tools that help us develop and build the application. The other tools we installed also have their own roles:
 
 | Tool | Responsibility |
 |---|---|
-| React | Component model and UI rendering. |
-| TypeScript | Static type checking and editor feedback. |
-| Vite | Development server, asset processing, and production bundling. |
-| npm | Installing packages and running scripts. |
+| React | Builds the user interface using components. |
+| TypeScript | Checks our code for type-related errors. |
+| Vite | Runs the development server and prepares the production build. |
+| Node.js | Provides the environment for running development tools. |
+| npm | Installs packages and runs project commands. |
+
+Together, these tools give us the environment we need to build and maintain React applications.
+
 
 ## Understand the Project Structure
 
-The exact generated files can change between Vite template versions. A typical React + TypeScript project contains:
+Our application is now running, so let's take a look inside the project folder.
+
+When Vite generated the project, it also created several folders and configuration files. At first, the number of files might seem overwhelming, especially if this is your first time working with a modern JavaScript project. However, each file has a specific purpose, and we only need to understand the important ones for now.
+
+A typical React + TypeScript project generated by Vite looks like this:
 
 ```text
 my-react-app/
-├── public/                 # Static files copied as-is
+│
+├── public/
+│
 ├── src/
-│   ├── assets/             # Imported assets such as images
-│   ├── App.tsx             # Root application component
-│   ├── main.tsx            # React entry point
-│   └── index.css           # Global styles
-├── index.html              # HTML entry document
-├── package.json            # Project metadata, dependencies, scripts
-├── package-lock.json       # Exact npm dependency resolution
-├── tsconfig.json           # TypeScript project configuration
-├── tsconfig.app.json       # Often used for application source
-├── tsconfig.node.json      # Often used for Node-based config files
-└── vite.config.ts          # Vite configuration
+│   ├── assets/
+│   ├── App.tsx
+│   ├── main.tsx
+│   └── index.css
+│
+├── index.html
+├── package.json
+├── package-lock.json
+├── tsconfig.json
+├── tsconfig.app.json
+├── tsconfig.node.json
+└── vite.config.ts
 ```
 
-**`index.html`** is the browser document Vite uses as its entry point. It contains the root element where React mounts the application and a module script that loads `src/main.tsx`.
+The exact structure may vary depending on the Vite template version, but the main files and their responsibilities are similar.
 
-**`src/main.tsx`** is the client entry point. It finds the root DOM element and asks React to render the root component:
+Rather than trying to memorize everything at once, let's follow the process we discussed earlier. We know that the browser starts by loading an HTML document, which then loads the file responsible for starting React. Understanding these two files will help us make sense of the rest of the project.
+
+### The `index.html` File
+
+Remember that every React application starts when the browser loads an HTML document. In a Vite project, this document is usually the `index.html` file located directly inside the project folder.
+
+Open it, and you will find a basic HTML structure containing an element where React will display the application.
+
+A simplified version looks like this:
+
+```html
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>My React App</title>
+  </head>
+
+  <body>
+    <div id="root"></div>
+
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+```
+
+There are two important parts to notice here. First, look at the following element:
+
+```html
+<div id="root"></div>
+```
+
+It is an empty HTML element. At this point, it does not contain our React interface. Instead, it acts as a container that React will use to display the application.
+
+The second important part is the script reference:
+
+```html
+<script type="module" src="/src/main.tsx"></script>
+```
+
+This tells the browser to load our `main.tsx` file as a JavaScript module. That file is responsible for starting React and connecting it to the empty container we just saw.
+
+So, `index.html` gives us the basic page structure, while `main.tsx` takes care of starting the React application inside it.
+
+### The `main.tsx` File
+
+Now let's open `src/main.tsx`.
+
+This file is the entry point of our React application. Its purpose is to connect React to the HTML page and tell React which component should be displayed first.
+
+A typical example looks like this:
 
 ```tsx
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+
 import App from './App.tsx';
 import './index.css';
 
-const container = document.getElementById('root');
+const rootElement = document.getElementById('root');
 
-if (!container) {
+if (!rootElement) {
   throw new Error('Root element #root was not found');
 }
 
-createRoot(container).render(
+createRoot(rootElement).render(
   <StrictMode>
     <App />
   </StrictMode>,
 );
 ```
 
-`createRoot` is the modern browser entry API. Do not use the old `ReactDOM.render` API in new projects. `StrictMode` enables additional development checks. It may intentionally run render logic and Effects more than once in development to reveal bugs; this is not an extra production render guarantee.
+Let's understand how these pieces work together.
 
-The call to `createRoot` connects React to that DOM element; after that point, the React tree controls the UI inside the root. You can still use ordinary browser APIs when appropriate, but normal interface updates should be expressed through React state and props rather than by manually editing elements that React manages.
+We start by importing `createRoot` from React:
 
-**`src/App.tsx`** is usually the root component. It composes other application components.
+```tsx
+import { createRoot } from 'react-dom/client';
+```
 
-**`public/`** is for files that should be served with their original names. Files imported from `src/` can be processed and fingerprinted by Vite.
+This is the function we use to connect React to an HTML element in the browser. Before we can use it, however, we need to find the container where the application will appear.
 
-## Understand `package.json` and npm
+That is why we have:
 
-`package.json` describes a Node project. It commonly contains a package name, version, scripts, dependencies, and development dependencies. Think of it as the project's manifest: it tells npm what the project is called, which packages it needs, and which repeatable commands the team can run. It is also the first file another developer usually inspects when joining a project, because the scripts reveal how the application is started, checked, tested, and built.
+```tsx
+const rootElement = document.getElementById('root');
+```
 
-Example:
+This line searches the HTML document for the element with the ID `root`. It is the same element we saw in `index.html`.
+
+We then check whether that element actually exists:
+
+```tsx
+if (!rootElement) {
+  throw new Error('Root element #root was not found');
+}
+```
+
+This check is useful because we cannot start React inside an element that does not exist. If something is wrong with our HTML document, the application will stop with a clear error message.
+
+Once we have the element, we can create the React root and tell it what to display:
+
+```tsx
+createRoot(rootElement).render(
+  <StrictMode>
+    <App />
+  </StrictMode>,
+);
+```
+
+The most important part here is `<App />`. This is our main application component. React starts with this component and then renders the other components it uses to build the interface.
+
+You may also have noticed something called `StrictMode`. This is a development feature that enables additional checks to help us identify potential problems in our code. It does not add any visible elements to the interface, but some development checks may cause components to run more than once. This is intentional and helps reveal certain mistakes while we are developing.
+
+We will keep using `StrictMode` throughout the course.
+
+### The `App.tsx` File
+
+We have now reached the component that React displays first.
+
+Open `src/App.tsx`. This file usually contains the root component of our application. It is called the root component because other components can be placed inside it, allowing us to combine smaller pieces into the complete interface.
+
+For example, we could replace its contents with:
+
+```tsx
+function App() {
+  return (
+    <main>
+      <h1>My Stock Dashboard</h1>
+      <p>Welcome to the application.</p>
+    </main>
+  );
+}
+
+export default App;
+```
+
+Here, `App` is a React component that returns the content we want to display on the screen. The `main.tsx` file imports this component and tells React to render it inside our HTML container.
+
+We will explore how to create our own components in more detail shortly. For now, the important thing is to understand the relationship between `index.html`, `main.tsx`, and `App.tsx`: the HTML document provides the container, the entry file starts React, and the `App` component describes the main interface.
+
+### Other Important Folders and Files
+
+Now that we understand how the application starts, let's look at the remaining parts of the project.
+
+The `src/` folder contains the main source code of our application. This is where we will spend most of our time because it holds our React components, styles, and application logic.
+
+Inside it, you will find the `assets/` folder, which is commonly used for files that we import into our code, such as images and other resources. There is also the `index.css` file, which contains global CSS rules that apply to the application.
+
+You may also have noticed the `public/` folder. Unlike files inside `src/assets/`, files inside `public/` are served directly and keep their original names. This makes it useful for static files that need to be referenced using a fixed URL, such as a favicon.
+
+The remaining files are mainly related to project configuration. We will explore the most important ones next so that we understand how our project is managed and how its tools are configured.
+## Understand the Project Configuration
+
+While exploring the project, you probably noticed several configuration files. They might look complicated at first, but they are easier to understand when we consider what each tool needs to know.
+
+For example, npm needs information about the project and its packages, Vite needs to know how the development server and build process should behave, and TypeScript needs rules for checking our code.
+
+Let's start with the file that brings together much of this information: `package.json`.
+
+### `package.json`
+
+The `package.json` file is one of the most important files in a Node.js project. You can think of it as the project's information sheet because it describes the project, lists the packages it depends on, and defines the commands we can run through npm.
+
+A simplified example looks like this:
 
 ```json
 {
@@ -154,59 +451,97 @@ Example:
   "private": true,
   "version": "1.0.0",
   "type": "module",
+
   "scripts": {
     "dev": "vite",
-    "typecheck": "tsc --noEmit",
-    "build": "npm run typecheck && vite build",
+    "build": "tsc -b && vite build",
+    "lint": "eslint .",
     "preview": "vite preview"
-  },
-  "dependencies": {
-    "react": "^19.3.1",
-    "react-dom": "^19.3.1"
-  },
-  "devDependencies": {
-    "@types/react": "^19.3.0",
-    "@types/react-dom": "^19.3.0",
-    "@vitejs/plugin-react": "^6.3.0",
-    "typescript": "^7.0.2",
-    "vite": "^8.3.8"
   }
 }
 ```
 
-The versions above are a modern baseline checked for this course update. When you scaffold a new project, prefer the package versions generated by the current official Vite template rather than forcing these numbers into an older project.
+Let's begin with the project information. The `name` field contains the project name, while `version` indicates its current version. The `private` property is set to `true` to prevent accidental publication of the package to the public npm registry.
 
-The version strings use semantic-versioning conventions. A prefix such as `^` generally allows npm to resolve compatible updates within the specified major version, while the lockfile records the exact resolved versions used for a particular installation. The manifest expresses the project's dependency policy; the lockfile records the concrete result. 
+You may also notice `"type": "module"`. This tells Node.js to use the ES module system for relevant JavaScript files. It is the module system that allows us to import and export functionality using `import` and `export`.
 
-The `private` field prevents accidental publication of an application package to the public npm registry. The `type: "module"` field tells Node to interpret relevant `.js` files as ES modules, which is consistent with the import/export syntax used by modern Vite configuration.
+#### Dependencies and Development Dependencies
 
-### Dependencies vs. Development Dependencies
+As applications grow, we often use external packages instead of writing every feature ourselves. For example, our React project needs the React libraries to build the interface, but it also needs tools such as Vite and TypeScript to help us develop and build the application.
 
-- `dependencies` are packages the application needs at runtime, such as `react` and `react-dom`.
-- `devDependencies` are tools used to develop, type-check, test, or build the application, such as Vite and TypeScript.
+These packages are organized into two main groups.
 
-### npm Scripts
+**Dependencies** are packages that the application needs at runtime. In our project, `react` and `react-dom` are examples.
 
-Scripts are named commands defined in `package.json`:
+**Development dependencies** are packages used during development, checking, or building. Tools such as `vite`, `typescript`, and `eslint` are common examples.
+
+This distinction helps us separate the libraries needed by the application from the tools we use to develop it.
+
+#### npm Scripts
+
+Another important part of `package.json` is the `scripts` section.
+
+When working on a project, we frequently need to run commands such as starting the development server, building the application, or checking our code. Instead of typing the complete command each time, we can define named scripts in `package.json` and execute them through npm.
+
+For example:
+
+```json
+"scripts": {
+  "dev": "vite",
+  "build": "tsc -b && vite build",
+  "lint": "eslint .",
+  "preview": "vite preview"
+}
+```
+
+Each script has a different purpose:
 
 | Command | Purpose |
 |---|---|
-| `npm run dev` | Start the Vite development server. |
-| `npm run typecheck` | Run TypeScript without emitting JavaScript. |
-| `npm run build` | Type-check, then create production assets. |
-| `npm run preview` | Serve the built output locally for a production-like check. |
+| `npm run dev` | Starts the development server. |
+| `npm run build` | Checks the TypeScript project and creates the production build. |
+| `npm run lint` | Checks the code for common problems and style issues. |
+| `npm run preview` | Starts a local server to preview the production build. |
 
-Use `npm run <script>` to run a custom script.
+For example, when we execute:
 
-A script is valuable because it gives the team one agreed command for a task. Instead of asking every developer to remember a long TypeScript or bundler command, the team can document `npm run typecheck` and `npm run build`. The command is not magic: npm simply finds the script in `package.json` and executes it. 
-### `package-lock.json`
+```bash
+npm run dev
+```
 
-The lockfile records the resolved dependency tree. Commit it to version control in an application so other developers and CI can install the same dependency versions. Use `npm ci` in automated clean installs when a lockfile is committed. Do not delete the lockfile just to make an installation error disappear; understand and resolve the dependency conflict first.
+npm looks inside `package.json`, finds the script named `dev`, and executes the command associated with it, which is `vite`.
 
-## Configure Vite with `vite.config.ts`
-Most projects can begin with the generated Vite configuration. Configuration becomes useful when the application has a real requirement: a backend API runs on another local port, the app is deployed beneath a URL prefix, source files need a consistent import alias, or the build output must match a hosting environment. Treat every configuration option as a decision with a reason. A long configuration file is not proof of a professional setup; a small configuration that directly expresses the project's needs is often easier to maintain.
+This is why we can use short, easy-to-remember commands instead of typing the complete tool command every time.
 
-Vite reads its configuration from the project root. The React plugin enables React-specific transforms and Fast Refresh:
+#### What Is `package-lock.json`?
+
+While exploring the project, you will also find another file called `package-lock.json`.
+
+To understand why it exists, imagine that two developers are working on the same application. Both need to install the project's dependencies, but they might do so at different times or on different computers.
+
+Without a lockfile, npm could resolve some package versions differently, potentially causing differences between their development environments.
+
+The `package-lock.json` file helps prevent this problem by recording the exact versions of the packages installed in the project, along with information about their dependencies. This makes it easier to reproduce the same dependency setup across different machines.
+
+For this reason, we normally commit `package-lock.json` to Git along with the rest of the project.
+
+When installing dependencies in a clean environment, we can also use:
+
+```bash
+npm ci
+```
+
+This command installs the dependencies using the versions recorded in the lockfile, making it particularly useful for automated builds and clean installations.
+
+### Configure Vite with `vite.config.ts`
+
+Now that we understand how npm manages our project and its packages, let's look at how we can customize the development tool itself.
+
+As we discussed earlier, Vite handles our development server and production build. However, different projects may have different requirements. We might want to change the development server port, forward requests to a backend API, or choose a different folder for the production files.
+
+These options are configured inside `vite.config.ts`.
+
+A basic React configuration looks like this:
 
 ```ts
 import { defineConfig } from 'vite';
@@ -214,65 +549,116 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
+});
+```
+
+The important part is `plugins: [react()]`. This enables the React plugin, which provides React-specific development features such as Fast Refresh.
+
+We can extend this configuration whenever our project needs additional settings. For example:
+
+```ts
+export default defineConfig({
+  plugins: [react()],
+
   server: {
     port: 5173,
-    strictPort: true,
     proxy: {
       '/api': 'http://localhost:8000',
     },
   },
+
   build: {
     outDir: 'dist',
-    sourcemap: true,
   },
 });
 ```
 
-This example sets a predictable local port, proxies `/api` requests to a local backend, and writes the production build to `dist/`. The proxy is a development-server feature; it does not create a production backend proxy by itself. Configure the production web server separately.
+Here, we have added a few configuration options.
 
-Common Vite options include:
+The `server.port` property specifies which port Vite should use for its development server. The `server.proxy` property allows us to forward matching requests to another server. This is particularly useful when our React application communicates with a backend running on a different port.
 
-- `server.port`: development server port.
-- `server.proxy`: forward selected development requests to another server.
-- `base`: public path used when deploying under a subpath.
-- `resolve.alias`: define import aliases such as `@` for `src`.
-- `build.outDir`: output directory for the production build.
-- `build.sourcemap`: generate source maps for debugging a production build.
+For example, if our backend API is available at `http://localhost:8000`, requests starting with `/api` can be forwarded to it during development.
 
-Do not add configuration just because it exists. Start with defaults and change a setting only when your deployment or project requires it.
+Finally, `build.outDir` controls the folder where Vite places the production build. By default, this folder is called `dist`.
 
-## Understand TypeScript Configuration
+Remember that the proxy configuration only applies to Vite's development server. It does not automatically configure the backend or the production server.
 
-A `tsconfig` file describes how TypeScript should interpret and check the source code. Modern Vite templates may split configuration into several files because application code runs in the browser while configuration code runs in a Node environment. Those environments have different built-in APIs and module-resolution needs. Rather than combining them into one permissive configuration, the template can give each environment the compiler options it needs.
+You do not need to add all these options to every project. The configuration generated by Vite is usually enough when starting out. We can introduce additional settings later, when we have a specific requirement.
 
-TypeScript checks types before the browser runs the built JavaScript. A Vite project typically has one or more `tsconfig` files because the browser application and Node-based configuration files run in different environments.
+### Understand TypeScript Configuration
 
-A simplified application configuration looks like this:
+We have already seen that TypeScript helps us catch certain mistakes while writing code. However, TypeScript also needs to know how our project is organized and which rules it should apply.
+
+This is the purpose of the TypeScript configuration files.
+
+A typical Vite project may contain:
+
+```text
+tsconfig.json
+tsconfig.app.json
+tsconfig.node.json
+```
+
+You might wonder why we need several configuration files instead of one. The reason is that different parts of our project run in different environments.
+
+Our React application runs inside the browser, while the Vite configuration itself runs through Node.js. Since these environments have different features and requirements, they may need different TypeScript settings.
+
+A simplified application configuration might look like this:
 
 ```json
 {
   "compilerOptions": {
-    "target": "ES2022",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
-    "module": "ESNext",
-    "moduleResolution": "Bundler",
-    "jsx": "react-jsx",
     "strict": true,
-    "noEmit": true,
-    "skipLibCheck": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true
+    "jsx": "react-jsx",
+    "noEmit": true
   },
   "include": ["src"]
 }
 ```
 
-Keep the configuration generated by the Vite template unless you have a reason to customize it. `strict: true` enables important type-checking rules. `noEmit: true` tells TypeScript to check the project without trying to generate the JavaScript bundle; Vite handles the build transformation.
+Let's understand what these options do.
+
+The `strict` option enables additional type-checking rules. This helps TypeScript catch more potential mistakes while we are writing code.
+
+The `jsx` option tells TypeScript how to handle JSX syntax, which we will use when writing React components.
+
+Finally, `noEmit` tells TypeScript to check our code without generating JavaScript files. Vite handles the transformation needed for the application build.
+
+TypeScript has many other configuration options, but we do not need to memorize them at this stage. For this workshop, keep the configuration generated by Vite. Our focus will be on learning how to use TypeScript inside our components.
 
 ## TypeScript Essentials for React
 
-TypeScript is JavaScript with a static type system. It helps catch certain errors before the application runs. TypeScript does not validate data received from an API at runtime.
+Now that we understand how the project is organized and configured, we can start looking at the code we will write inside it.
+
+Since we chose the React + TypeScript template, our components will use TypeScript rather than plain JavaScript. Before building them, however, we need to understand a few basic concepts.
+
+TypeScript is JavaScript with a type system. A type describes what kind of value a variable, function, or object is expected to contain. This helps us catch certain mistakes while writing our code instead of discovering all of them only when the application runs.
+
+For example:
+
+```ts
+const name: string = 'Sarah';
+const age: number = 25;
+const isStudent: boolean = true;
+```
+
+In these examples, we tell TypeScript that `name` should contain text, `age` should contain a number, and `isStudent` should contain either `true` or `false`.
+
+Because we have specified these types, TypeScript can warn us when we try to use a value incorrectly. For example:
+
+```ts
+const age: number = 'twenty';
+```
+
+This produces a type error because we are assigning text to a variable that should contain a number.
+
+This becomes especially useful when our applications start dealing with more complex data.
+
+### Working with Object Types
+
+In real applications, we rarely work with only simple values. We often deal with objects containing several related properties.
+
+Imagine that our application has a user with an ID, a name, and an email address. We can describe the structure of this object using a TypeScript type:
 
 ```ts
 type User = {
@@ -280,45 +666,170 @@ type User = {
   name: string;
   email?: string;
 };
+```
 
+This tells TypeScript what information a `User` object should contain. The `id` must be a number, the `name` must be a string, and the `email` property is optional because it has a question mark after its name.
+
+We can now create an object using this type:
+
+```ts
 const currentUser: User = {
   id: 1,
   name: 'Maya',
 };
+```
 
+This object is valid because it contains all the required properties. We do not need to provide an email address because that property is optional.
+
+The same idea applies to functions. We can use types to describe the information a function expects and the value it returns:
+
+```ts
 function formatGreeting(user: User): string {
   return `Hello, ${user.name}`;
 }
 ```
 
-Here, `User` describes the shape of a user object. The `email` property is optional. The function accepts a `User` and returns a string.
+Here, the function expects an object that follows the `User` type and returns a string.
 
+As our React application grows, we will use TypeScript types to describe the information our components receive and the data they work with.
 
-Remember the boundary between compile-time and runtime. TypeScript checks the program according to the types you write, but a JSON response can still contain a missing field or an unexpected value. Later, when we work with APIs, we will validate external data before trusting it.
-## JSX and TSX
+One important detail to remember is that TypeScript checks our code during development, but it does not automatically validate data received from an external API. We will explore ways to handle external data safely in a later workshop.
 
-JSX is syntax that lets us describe UI using HTML-like tags inside JavaScript or TypeScript. A file containing JSX should use `.jsx` or `.tsx`; this course uses `.tsx`.
+## Understanding JSX and TSX
 
-JSX is not HTML copied directly into a TypeScript file. It is a syntax extension that is transformed by the build tooling into JavaScript calls that describe React elements. It looks familiar because the browser's HTML vocabulary is a natural way to describe interfaces, but it follows JavaScript expression rules and React-specific conventions. Once you understand that JSX is part of the component's return value, the syntax becomes less mysterious: the tags describe the structure, and curly braces let the component insert values or expressions into that structure.
+Now that we know how to describe our data using TypeScript, let's look at how we describe what should appear on the screen.
+
+React uses a syntax called **JSX**, which allows us to write HTML-like elements directly inside JavaScript or TypeScript code.
+
+For example:
 
 ```tsx
 const heading = <h1>Welcome to React</h1>;
 ```
 
-JSX rules to remember:
+At first glance, this looks like ordinary HTML, but it is actually JSX. Our development tools transform this syntax into JavaScript so that React can work with it.
 
-1. Return one root element. Use a fragment (`<>...</>`) when you do not need an extra DOM element.
-2. Use `className` for CSS classes.
-3. Use camelCase DOM properties such as `onClick` and `tabIndex`.
-4. Use `{}` to insert JavaScript expressions.
-5. Close elements correctly, including void elements such as `<img />` and `<input />`.
-6. Give mapped elements stable keys; this is covered in Workshop 2.
+Since we are combining TypeScript with JSX, our React component files use the `.tsx` extension. This is why files such as `App.tsx`, `Header.tsx`, and `ProductList.tsx` use that extension.
 
-## Build Your First Component
+JSX is designed to feel familiar to anyone who already knows HTML, but there are a few differences worth understanding before we start writing components.
 
-A component should have a clear name and a clear responsibility. Start with a small `Welcome` component because it has no data or interaction to manage. Then compose it inside `App`. This is the same process used in larger applications: build understandable pieces, then assemble those pieces into a page. As requirements grow, a component can receive props, manage local state, or delegate a repeated pattern to another component.
+### Basic JSX Rules
 
-A React function component starts with a capital letter and returns JSX:
+The first thing to understand is that JSX expressions returned by a component need to be wrapped inside one root element.
+
+For example, the following component is not valid:
+
+```tsx
+function App() {
+  return (
+    <h1>Hello</h1>
+    <p>Welcome to React</p>
+  );
+}
+```
+
+The problem is that we are returning two separate elements without a common parent. We can fix this by wrapping them inside a `main` element:
+
+```tsx
+function App() {
+  return (
+    <main>
+      <h1>Hello</h1>
+      <p>Welcome to React</p>
+    </main>
+  );
+}
+```
+
+Sometimes, we do not actually need an additional HTML element. In those situations, we can use a React Fragment, which groups multiple elements without adding another element to the DOM:
+
+```tsx
+function App() {
+  return (
+    <>
+      <h1>Hello</h1>
+      <p>Welcome to React</p>
+    </>
+  );
+}
+```
+
+Another difference you will notice is how we assign CSS classes. In HTML, we normally use the `class` attribute, but in JSX we use `className`:
+
+```tsx
+<h1 className="title">Welcome</h1>
+```
+
+This is one example of how JSX uses JavaScript-compatible property names.
+
+We can also insert JavaScript values and expressions directly into JSX using curly braces `{}`. This is particularly useful because it allows our interface to display information stored in variables rather than relying only on fixed text.
+
+For example:
+
+```tsx
+const name = 'Sarah';
+
+function App() {
+  return <h1>Hello, {name}</h1>;
+}
+```
+
+When React renders this component, it inserts the value of `name` into the heading, so the result displayed in the browser is:
+
+```text
+Hello, Sarah
+```
+
+The same idea works with expressions:
+
+```tsx
+const quantity = 5;
+
+function App() {
+  return <p>Available products: {quantity + 10}</p>;
+}
+```
+
+Here, React evaluates the expression and displays the result, which is `15`.
+
+JSX also uses camelCase for many HTML attributes. For example, when handling a button click, we write `onClick` rather than `onclick`:
+
+```tsx
+<button onClick={handleClick}>Click Me</button>
+```
+
+We will use this syntax later when making our components interactive.
+
+Another small difference is that JSX requires elements such as `img` and `input` to be closed explicitly:
+
+```tsx
+<img src="/logo.png" alt="Logo" />
+<input type="text" />
+```
+
+Finally, when we display lists of elements using JavaScript, React needs a stable key for each item. These keys help React keep track of the elements when the list changes. We will explore this in more detail in Workshop 2.
+
+With these basic rules in mind, we are ready to create our first component.
+
+## Build Your First React Component
+
+We now understand how JSX works and why React divides interfaces into components. Instead of writing everything inside one large file, we can create smaller components and combine them to build our application.
+
+Let's begin with something simple: a welcome message.
+
+We can create a function called `Welcome` that returns the message we want to display:
+
+```tsx
+function Welcome() {
+  return <h1>Hello, welcome to React!</h1>;
+}
+```
+
+This is a React function component. There are two important things to notice: its name starts with a capital letter, and it returns JSX describing what should appear on the screen.
+
+But defining a component is not enough. We also need to use it somewhere in our application. Since `App` is our root component, we can place `Welcome` inside it.
+
+Open `App.tsx` and write:
 
 ```tsx
 function Welcome() {
@@ -335,20 +846,118 @@ export default function App() {
 }
 ```
 
-### Pass Data with Typed Props
+Notice how we use `<Welcome />` just like an HTML element. The difference is that it represents our own React component. When React renders `App`, it also renders `Welcome` and displays the JSX returned by that component.
 
-Props are inputs to a component. A child should not directly modify the props it receives.
+We can even use the same component more than once:
+
+```tsx
+export default function App() {
+  return (
+    <main>
+      <Welcome />
+      <Welcome />
+      <Welcome />
+    </main>
+  );
+}
+```
+
+Now the same welcome message appears three times, even though we only wrote the component once.
+
+This is one of the main benefits of components. We create a piece of the interface once and reuse it wherever we need it, without repeating its implementation.
+
+However, our current `Welcome` component has a limitation: it always displays exactly the same message. What if we want to display a different name each time we use it?
+
+We could create a separate component for every name, but that would bring us back to repeating code. Fortunately, React provides a much better solution.
+
+## Pass Data to Components with Props
+
+Imagine that we want to display a welcome message for several users. We have already created a `Welcome` component, so it would be convenient to reuse it with different names.
+
+React allows us to do this by passing information from one component to another. This information is called **props**.
+
+You can think of props as the inputs of a component. Just as a function can receive arguments, a React component can receive information from its parent and use it to determine what should appear on the screen.
+
+Let's modify our previous example.
+
+Since we are using TypeScript, we first need to describe the information our component expects to receive:
+
+```tsx
+type GreetingProps = {
+  name: string;
+};
+```
+
+This tells TypeScript that our component will receive a property called `name`, and that its value must be a string.
+
+We can now use this type when defining our component:
+
+```tsx
+function Greeting({ name }: GreetingProps) {
+  return <p>Hello, {name}!</p>;
+}
+```
+
+The component receives the props object and extracts the `name` property. We can then use that value directly inside JSX.
+
+Now let's use the same component with different names:
+
+```tsx
+export default function App() {
+  return (
+    <main>
+      <Greeting name="Sarah" />
+      <Greeting name="Alex" />
+      <Greeting name="Maya" />
+    </main>
+  );
+}
+```
+
+The result will be:
+
+```text
+Hello, Sarah!
+Hello, Alex!
+Hello, Maya!
+```
+
+Notice that we did not create three different components. We created one component and supplied it with different information each time we used it.
+
+This is what makes props so useful: they allow us to reuse the same component in different situations without changing its implementation.
+
+### Required and Optional Props
+
+Not every component needs the same information in every situation. Sometimes a property is essential, while another property is only useful occasionally.
+
+TypeScript allows us to describe this difference. For example, suppose we want our greeting component to display both a name and a city, but we do not always want to provide the city.
+
+We can represent that using an optional property:
 
 ```tsx
 type GreetingProps = {
   name: string;
   city?: string;
 };
+```
 
+The `name` property is required, while `city` is optional. The question mark tells TypeScript that we can use the component without providing a value for `city`.
+
+We can also provide a default value for that property:
+
+```tsx
 function Greeting({ name, city = 'your city' }: GreetingProps) {
-  return <p>Hello {name} from {city}.</p>;
+  return (
+    <p>
+      Hello {name} from {city}.
+    </p>
+  );
 }
+```
 
+Now we can use the component in two different ways:
+
+```tsx
 export default function App() {
   return (
     <>
@@ -359,62 +968,336 @@ export default function App() {
 }
 ```
 
-The default value is provided through JavaScript parameter syntax. This is the modern approach for function components.
+In the first example, we provide the city ourselves, so the component displays Oran. In the second example, we leave the city out, and the component uses the default value instead.
 
-It is useful to think of props as the component's public input contract. The parent decides which values to provide, and the child decides how to present them. When a greeting component receives `name="Sarah"`, it does not need to know where that name came from or how the parent stored it. That separation makes the component reusable in different places. Props should be treated as read-only; when a value needs to change, the component that owns the state should handle the update and pass the new value down.
+### An Important Rule About Props
 
-### Add State with `useState`
+There is one important rule we need to remember when working with props: **props are read-only**.
 
-A normal local variable is recreated when a component renders. State is React-managed data that persists between renders. Updating state asks React to render the component again with the new value.
+A child component can use the information it receives, but it should not directly modify that information. This helps us keep the application organized and makes it easier to understand where data changes happen.
+
+Imagine that a parent component sends a product quantity to a child component. The child can display that quantity, but if the value needs to change, the component responsible for managing the data should handle the update.
+
+This gives us a predictable relationship between components: the parent provides the information, the child receives and uses it, and the parent remains responsible for deciding when that information changes.
+
+So far, we have learned how to pass information into a component, but we have not yet dealt with information that changes while the user interacts with the application. For that, we need another important concept: state.
+
+## Make Components Interactive with State
+
+Until now, our components have mainly displayed information. We have passed them different values using props, but they have not managed any changing information themselves.
+
+Let's imagine that we are building a simple product interface with a button that increases the available quantity. Every time the user clicks the button, the quantity should increase by one, and the new value should appear on the screen.
+
+We could store the quantity in a normal JavaScript variable, but that would not be enough. We need a way for React to remember the value and update the interface whenever it changes.
+
+This is exactly what **state** is used for.
+
+State is data that React remembers between renders. When we update that data, React knows that the component needs to render again so the interface can display the new value.
+
+The easiest way to understand this is through a simple counter.
+
+### Create a Counter Component
+
+We want to build a counter with three buttons. One button will increase the count, another will decrease it, and the last one will reset it to zero.
+
+To manage the counter's value, we first need to import `useState` from React:
+
+```tsx
+import { useState } from 'react';
+```
+
+`useState` is a React Hook that allows function components to manage state.
+
+Now let's build our counter:
 
 ```tsx
 import { useState } from 'react';
 
 export default function Counter() {
-  const [count, setCount] = useState<number>(0);
+  const [count, setCount] = useState(0);
 
   return (
     <section>
       <h1>Counter</h1>
-      <p aria-live="polite">Current count: {count}</p>
-      <button onClick={() => setCount((current) => current + 1)}>
+
+      <p>Current count: {count}</p>
+
+      <button onClick={() => setCount(count + 1)}>
         Increment
       </button>
-      <button onClick={() => setCount((current) => current - 1)}>
+
+      <button onClick={() => setCount(count - 1)}>
         Decrement
       </button>
-      <button onClick={() => setCount(0)}>Reset</button>
+
+      <button onClick={() => setCount(0)}>
+        Reset
+      </button>
     </section>
   );
 }
 ```
-A state update does not directly rewrite the `count` variable in the currently running component function. Each render sees a snapshot of state. Calling the setter asks React to schedule another render with the next value. That mental model explains why reading `count` immediately after calling `setCount` still gives you the value from the current render. When the next value depends on the previous one, the updater form lets React apply the calculation to the latest queued value.
 
-## Workshop Challenge: Counter Interface
+Let's understand how this component works, starting with the line responsible for creating our state:
 
-Starting from the Vite example in `Workshop1/Example/my-app`:
+```tsx
+const [count, setCount] = useState(0);
+```
+
+The `useState` function gives us two things. The first is `count`, which contains the current state value. The second is `setCount`, a function that allows us to request an update to that value. The `0` passed to `useState` is the initial value, which means our counter starts at zero.
+
+Now that we have a state variable, we can display it inside our JSX:
+
+```tsx
+<p>Current count: {count}</p>
+```
+
+Because `count` is a JavaScript variable, we can insert its value into JSX using curly braces. React will display whatever the current state value happens to be.
+
+The remaining part is connecting the buttons to our state. Take the Increment button as an example:
+
+```tsx
+<button onClick={() => setCount(count + 1)}>
+  Increment
+</button>
+```
+
+We use the `onClick` event to tell React which function should run when the user clicks the button. In this case, the function calls `setCount` and requests that the counter be updated with a value one greater than its current value.
+
+The other buttons follow the same idea. The Decrement button uses `setCount(count - 1)` to decrease the value, while the Reset button uses `setCount(0)` to return it to zero.
+
+With these few lines, we have created a component that responds to user interaction.
+
+### What Happens When State Changes?
+
+Now that the counter works, let's look at what happens behind the scenes.
+
+Imagine that the counter currently displays zero. When the user clicks Increment, the `onClick` function runs and calls `setCount` with the new value.
+
+React receives this state update and renders the component again. This time, `count` contains the new value, so the JSX describes an interface that displays one instead of zero. React then updates the displayed value in the browser.
+
+The process can be represented like this:
+
+```text
+1. The user clicks the button.
+                 |
+                 v
+2. The onClick function runs.
+                 |
+                 v
+3. setCount requests a state update.
+                 |
+                 v
+4. React renders the component again.
+                 |
+                 v
+5. The component now uses the new count.
+                 |
+                 v
+6. React updates the displayed value.
+```
+
+The important thing to notice is that we never manually search for the paragraph and change its text. We simply update the state, and React takes care of updating the interface to match it.
+
+This is the same idea we discussed at the beginning of the workshop: we describe what the interface should look like based on the current data, and React handles the updates when that data changes.
+
+### A Normal Variable Is Not the Same as State
+
+At this point, you might wonder why we need `useState` instead of using a normal JavaScript variable.
+
+For example, why couldn't we simply write:
+
+```tsx
+let count = 0;
+```
+
+The problem is that a normal variable does not behave the way we need inside a React component.
+
+Whenever React renders a component again, the component function runs again. A normal variable declared inside that function is created again, so it does not remember the value from the previous render.
+
+There is another problem: changing a normal variable does not automatically tell React that the interface needs to be updated.
+
+State works differently because React keeps track of its values between renders. When we update state using its setter function, React knows that the component needs to render again and display the new value.
+
+That is why we use state for information that needs to be remembered and displayed over time.
+
+### A Small Detail About Updating State
+
+You may sometimes see the counter updated using this syntax:
+
+```tsx
+setCount((currentCount) => currentCount + 1);
+```
+
+Instead of:
+
+```tsx
+setCount(count + 1);
+```
+
+Both forms can be used to increase the counter. However, the first form calculates the next value using the previous state value supplied by React.
+
+This is particularly useful when the next state depends on the previous one, especially when several state updates may happen close together.
+
+As our applications become more complex, we will use this form more often.
+
+## How Components, Props, and State Work Together
+
+We have now learned three important concepts: components, props, and state. Components allow us to divide the interface into smaller reusable pieces, props allow us to pass information between those pieces, and state allows a component to manage information that changes over time.
+
+It is important to understand that these concepts are not separate features. They work together whenever we build a real application.
+
+Let's improve our counter example to see how.
+
+Imagine that we do not want the counter component to handle everything itself. Instead, we want to divide it into two components: one responsible for managing the counter and another responsible for displaying its current value.
+
+We can call them `Counter` and `CounterSummary`.
+
+The `Counter` component will own the state, while `CounterSummary` will receive the current value through props. This way, each component has a clear responsibility.
+
+Here is what the implementation looks like:
+
+```tsx
+import { useState } from 'react';
+
+type CounterSummaryProps = {
+  count: number;
+};
+
+function CounterSummary({ count }: CounterSummaryProps) {
+  return <p>Current count: {count}</p>;
+}
+
+export default function Counter() {
+  const [count, setCount] = useState(0);
+
+  return (
+    <section>
+      <h1>Counter</h1>
+
+      <CounterSummary count={count} />
+
+      <button onClick={() => setCount(count + 1)}>
+        Increment
+      </button>
+    </section>
+  );
+}
+```
+
+When the application starts, `Counter` creates its state with an initial value of zero and passes that value to `CounterSummary`. The summary component receives the value through its `count` prop and displays it.
+
+When the user clicks Increment, the state inside `Counter` changes. React then renders the updated interface, and `CounterSummary` receives the new value through props.
+
+Notice that `CounterSummary` does not need to manage the counter itself. It simply displays the information it receives. The `Counter` component remains responsible for managing the data.
+
+This is an example of **one-way data flow**. Information normally moves from parent components to child components through props.
+
+But what happens when a child component needs to request a change to information owned by its parent? In that situation, the parent can pass a function to the child, allowing it to request an update. We will explore this type of communication in Workshop 2.
+
+For now, remember the general relationship: **props carry information into a component, while state allows a component to manage information that changes over time.**
+
+## Understanding Rendering
+
+Throughout this workshop, we have used the word *render* several times. We have seen that React renders components when the application starts and when their state changes, but let's take a closer look at what rendering actually means.
+
+In React, rendering means that React calls a component to find out what the interface should look like based on its current props and state.
+
+When something triggers a render, React executes the component function again. The component returns JSX describing the interface with its current data. React then compares the new result with the previous one and applies the necessary changes to the browser's DOM.
+
+Let's connect this to our counter example.
+
+Suppose the counter currently displays zero. When the user clicks Increment, the state update triggers another render. React calls the component again, and this time its JSX contains the value one instead of zero.
+
+React then updates the displayed value in the browser.
+
+This is why we say that our interface is based on the current state and props of our components. The component describes what should appear on the screen, and React takes care of keeping the DOM consistent with that description.
+
+Understanding this also explains why we should avoid manually changing the DOM when working with React.
+
+For example, we should not search for the counter paragraph ourselves and replace its text. Instead, we update the state and let React handle the necessary changes.
+
+This keeps the application predictable because the interface remains connected to the data that describes it.
+
+## Workshop Challenge: Build a Counter Interface
+
+Now that we understand how React applications work, how to create components, and how props and state fit together, it is time to put everything into practice.
+
+Throughout the workshop, we used small examples to understand each concept individually. For this challenge, we will combine them into a small counter interface.
+
+Starting from the Vite project located at:
+
+```text
+Workshop1/Example/my-app
+```
+
+Build an interface with the following requirements:
 
 1. Create a reusable `Counter` component.
-2. Add increment, decrement, and reset buttons.
-3. Prevent the count from going below zero.
-4. Add a second counter that can have a different starting value.
-5. Add a small summary component that receives the count as a prop.
-6. Style the interface with semantic HTML and keyboard-visible focus styles.
+2. Add three buttons: Increment, Decrement, and Reset.
+3. Prevent the counter from going below zero.
+4. Add a second counter that can start with a different initial value.
+5. Create a `CounterSummary` component that receives the counter value through props.
+6. Style the interface using CSS.
+7. Use semantic HTML elements and make sure the buttons have visible keyboard focus styles.
 
-## Professional Recap
+### Challenge Goal
 
-- Vite is a build tool; React is the UI library; TypeScript adds static checking.
-- `package.json` declares scripts and packages. `package-lock.json` records the resolved dependency tree.
-- `vite.config.ts` configures Vite; `tsconfig` configures TypeScript.
-- React uses function components and Hooks in this course.
-- Props are inputs; state is data managed by a component.
-- State updates describe the next UI. Do not manually mutate the DOM.
-- TypeScript cannot guarantee that external JSON matches an interface at runtime.
+The purpose of this challenge is to bring together the ideas we have learned. You will create reusable components, pass information through props, manage changing values with `useState`, and handle user interactions using button events.
+
+As you work, pay attention to how the different components communicate and how React updates the interface when the state changes.
+
+Try to solve the challenge yourself before looking for a complete solution. The goal is not simply to make the counter work, but to understand why it works and how the different React concepts fit together.
+
+## Workshop Recap
+
+We have covered quite a bit in this first workshop. We started by understanding why React is useful and how it approaches building user interfaces. Then we prepared our development environment, created a project with Vite, explored its structure, and gradually moved into writing our own components.
+
+Before moving forward, let's revisit the main ideas and make sure we understand how they connect.
+
+We first learned that **React is a library for building user interfaces**. Instead of putting an entire interface into one large piece of code, we divide it into reusable components and combine them to build the application. We also saw that React allows us to describe the interface based on the current data rather than manually changing individual HTML elements whenever something changes.
+
+To create and develop our application, we prepared an environment using Node.js, npm, and Vite. Node.js provides the environment for running development tools, npm manages the packages and project commands, and Vite handles the development server and production build process. We also introduced TypeScript, which helps us catch certain errors while writing code.
+
+After creating the project, we explored the files responsible for starting and managing the application. We saw that `index.html` provides the HTML document loaded by the browser, while `main.tsx` connects React to the page. The `App.tsx` file usually contains the root component from which the rest of the interface is built.
+
+We also looked at the configuration files. `package.json` describes the project, its dependencies, and the scripts we can run. `package-lock.json` records the resolved package versions, while `vite.config.ts` controls how Vite behaves. The `tsconfig` files contain the TypeScript configuration used to check different parts of the project.
+
+Finally, we explored the React fundamentals that we will use throughout the course. JSX allows us to describe the interface using HTML-like syntax inside TypeScript files. Components divide the interface into reusable pieces, while props allow us to pass information from parent components to children. State, managed through `useState`, allows components to remember and update information as the user interacts with the application. Whenever state changes, React renders the component again and updates the DOM when necessary.
 
 ### Self-Check
 
-Can you create a Vite React TypeScript project without a tutorial? Can you explain what `npm run dev`, `npm run build`, `vite.config.ts`, `main.tsx`, and `package-lock.json` each do? Can you write a component with typed props and state? If not, repeat the matching section before moving on.
+Before moving to the next workshop, take some time to answer these questions:
+
+1. What is React, and what problem does it help us solve?
+2. What is the difference between a component and a normal HTML element?
+3. What are Node.js, npm, and Vite used for?
+4. What happens when the browser opens a React application?
+5. What is the purpose of `main.tsx`?
+6. What is the difference between `package.json` and `package-lock.json`?
+7. What is the purpose of `vite.config.ts`?
+8. What is the difference between props and state?
+9. What happens when we call a state setter such as `setCount`?
+10. Why should we let React update the DOM instead of changing it manually?
+
+You do not need to memorize every line of code we have written. What matters is that you understand the ideas behind it and can explain how the different parts work together.
+
+Try answering these questions without looking back at the explanations, then complete the counter challenge. If you can explain the concepts and build the counter yourself, you have understood the main ideas of this workshop.
 
 ## How This Leads to Workshop 2
 
-You now know how a React application starts, how a component describes content, and how props and state provide the information for that description. The next step is to make the interface respond to real user actions. We will take the small component model from this workshop and use it to build a task manager, where multiple components need to communicate and several actions update the same collection of data.
+In this workshop, we learned how a React application starts, how to create components, how to pass information between them, and how to make them interactive using state.
+
+However, our examples were still relatively small. We mostly worked with a component managing its own data or passing a value to another component.
+
+Real applications are more complex because they contain many components that need to communicate and work together.
+
+Imagine that we want to build a task manager. The interface might contain a task list, individual task items, an input field, and buttons for adding, editing, or deleting tasks.
+
+These components cannot work completely independently. For example, when a user adds a new task, the application needs to receive the information, update the task list, and display the new item on the screen. When a task is deleted, the list needs to reflect that change as well.
+
+To build something like this, we need to understand how to organize data between components, how to display collections of information, and how to handle interactions that involve several parts of the interface.
+
+That is exactly what we will explore in **Workshop 2**. We will build a small task manager and use it to understand how components communicate, how to display lists of data, and how to handle more complex user interactions.
+
+By then, you will start seeing how the concepts from this first workshop come together to build a more complete React application.
